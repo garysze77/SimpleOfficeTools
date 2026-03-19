@@ -24,9 +24,33 @@
             color: #0c4a6e;
             text-align: center;
             font-size: 2rem;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-weight: 700;
             letter-spacing: 1px;
+        }
+        .lang-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            padding: 8px 20px;
+            border: 2px solid #0ea5e9;
+            background: white;
+            color: #0ea5e9;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .lang-btn:hover {
+            background: #f0f9ff;
+        }
+        .lang-btn.active {
+            background: #0ea5e9;
+            color: white;
         }
         .card {
             background: white;
@@ -440,6 +464,50 @@
             font-weight: 500;
             color: #374151;
         }
+        /* Header Text Color Options */
+        .header-text-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .header-text-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        .header-text-option input {
+            display: none;
+        }
+        .header-text-box {
+            width: 50px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .header-text-box.light {
+            background: #3b82f6;
+            color: white;
+        }
+        .header-text-box.dark {
+            background: #1e293b;
+            color: white;
+        }
+        .header-text-option input:checked + .header-text-box {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+        }
+        .header-text-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
         /* Sample file links */
         .sample-links {
             display: flex;
@@ -589,6 +657,10 @@
 </head>
 <body>
     <h1>Invoice/Quotation/Receipt Generator</h1>
+    <div class="lang-toggle">
+        <button type="button" class="lang-btn active" data-lang="zh">中文</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+    </div>
 
     <div class="card">
         <h2>1. 單據類型</h2>
@@ -704,6 +776,25 @@
                 <label class="custom-color-label">
                     <input type="color" id="customColor" class="custom-color-input" value="#3b82f6">
                     <span class="custom-color-text">自訂顏色</span>
+                </label>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Header 字體顏色</label>
+            <div class="header-text-options">
+                <label class="header-text-option">
+                    <input type="radio" name="headerTextColor" value="light" checked>
+                    <div class="header-text-box light">
+                        <span>Aa</span>
+                    </div>
+                    <span class="header-text-label">淺色 (白色)</span>
+                </label>
+                <label class="header-text-option">
+                    <input type="radio" name="headerTextColor" value="dark">
+                    <div class="header-text-box dark">
+                        <span>Aa</span>
+                    </div>
+                    <span class="header-text-label">深色</span>
                 </label>
             </div>
         </div>
@@ -986,6 +1077,137 @@ const blob = await res.blob();</textarea>
     </div>
 
     <script>
+        // Translations
+        const translations = {
+            zh: {
+                title: 'Invoice/Quotation/Receipt Generator',
+                docType: '單據類型',
+                template: '範本樣式',
+                themeColor: '主題顏色',
+                companyInfo: '公司資料',
+                companyName: '公司名稱',
+                companyAddress: '公司地址',
+                contactPerson: '聯絡人',
+                others: '其它資料',
+                stamp: '公司蓋章',
+                uploadFile: '上載資料檔案 或 API',
+                fileTab: '上載檔案',
+                restTab: 'REST API',
+                sheetsTab: 'Google Sheets',
+                apiDocTab: 'API 文件',
+                tc: 'T&C (Terms & Conditions)',
+                download: '下載全部',
+                preview: '預覽',
+                downloadSingle: '下載呢張',
+                sampleDownload: '下載範本',
+                headerTextColor: 'Header 字體顏色',
+                light: '淺色 (白色)',
+                dark: '深色',
+                customColor: '自訂顏色',
+                classic: 'Classic',
+                modern: 'Modern',
+                minimal: 'Minimal',
+                bold: 'Bold',
+                receipt: '收據',
+                invoice: '發票',
+                quotation: '報價單',
+                proforma: '形式發票',
+                selectFile: '選擇資料檔案 (Excel / CSV / JSON) *',
+                requiredFields: '檔案需包含以下欄位',
+                apiUrl: 'API URL',
+                apiKey: 'API Key (可選)',
+                fieldMapping: '自訂欄位對應',
+                sheetsUrl: 'Google Sheets URL',
+                sheetsCsvUrl: '或輸入已發布的 CSV URL',
+                fetchFromApi: '從 API 獲取數據',
+                fetchFromSheets: '從 Google Sheets 獲取數據',
+                enterCompanyName: '請輸入公司名稱！',
+                enterFile: '請上載資料檔案！',
+                processing: '處理中...',
+                success: '成功',
+                items: '項 item',
+                total: 'Total',
+                qty: 'Qty',
+                description: 'Description',
+                unitPrice: 'Unit Price',
+                amount: 'Amount',
+                from: 'From',
+                billTo: 'Bill To',
+                invoiceNo: 'Invoice No',
+                date: 'Date',
+                totalLabel: 'TOTAL'
+            },
+            en: {
+                title: 'Invoice/Quotation/Receipt Generator',
+                docType: 'Document Type',
+                template: 'Template Style',
+                themeColor: 'Theme Color',
+                companyInfo: 'Company Info',
+                companyName: 'Company Name',
+                companyAddress: 'Company Address',
+                contactPerson: 'Contact Person',
+                others: 'Others',
+                stamp: 'Company Stamp',
+                uploadFile: 'Upload Data or API',
+                fileTab: 'Upload File',
+                restTab: 'REST API',
+                sheetsTab: 'Google Sheets',
+                apiDocTab: 'API Doc',
+                tc: 'T&C (Terms & Conditions)',
+                download: 'Download All',
+                preview: 'Preview',
+                downloadSingle: 'Download',
+                sampleDownload: 'Download Sample',
+                headerTextColor: 'Header Text Color',
+                light: 'Light (White)',
+                dark: 'Dark',
+                customColor: 'Custom Color',
+                classic: 'Classic',
+                modern: 'Modern',
+                minimal: 'Minimal',
+                bold: 'Bold',
+                receipt: 'Receipt',
+                invoice: 'Invoice',
+                quotation: 'Quotation',
+                proforma: 'Proforma',
+                selectFile: 'Select Data File (Excel / CSV / JSON) *',
+                requiredFields: 'Required fields',
+                apiUrl: 'API URL',
+                apiKey: 'API Key (Optional)',
+                fieldMapping: 'Field Mapping',
+                sheetsUrl: 'Google Sheets URL',
+                sheetsCsvUrl: 'Or enter published CSV URL',
+                fetchFromApi: 'Fetch from API',
+                fetchFromSheets: 'Fetch from Google Sheets',
+                enterCompanyName: 'Please enter company name!',
+                enterFile: 'Please upload data file!',
+                processing: 'Processing...',
+                success: 'Success',
+                items: 'items',
+                total: 'Total',
+                qty: 'Qty',
+                description: 'Description',
+                unitPrice: 'Unit Price',
+                amount: 'Amount',
+                from: 'From',
+                billTo: 'Bill To',
+                invoiceNo: 'Invoice No',
+                date: 'Date',
+                totalLabel: 'TOTAL'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        // Language toggle
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentLang = this.dataset.lang;
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
         let excelData = [];
         let stampData = null;
         let stampType = null;
@@ -1381,6 +1603,11 @@ const blob = await res.blob();</textarea>
             const checkedRadio = document.querySelector('input[name="themeColor"]:checked');
             const themeColor = checkedRadio ? checkedRadio.value : customColor;
 
+            // Get header text color
+            const headerTextColorRadio = document.querySelector('input[name="headerTextColor"]:checked');
+            const headerTextColor = headerTextColorRadio ? headerTextColorRadio.value : 'light';
+            const headerTextColorValue = headerTextColor === 'light' ? '#ffffff' : '#1f2937';
+
             // Get selected template
             const templateRadio = document.querySelector('input[name="template"]:checked');
             const template = templateRadio ? templateRadio.value : 'classic';
@@ -1399,6 +1626,7 @@ const blob = await res.blob();</textarea>
             container.innerHTML = getTemplateHTML({
                 template,
                 themeColor,
+                headerTextColor: headerTextColorValue,
                 companyName,
                 companyAddress,
                 contactPerson,
@@ -1455,7 +1683,7 @@ const blob = await res.blob();</textarea>
         // Template HTML generators
         function getTemplateHTML(data) {
             const {
-                template, themeColor, companyName, companyAddress, contactPerson, others,
+                template, themeColor, headerTextColor, companyName, companyAddress, contactPerson, others,
                 type, clientName, clientAddress, receiptNo, dateStr, items,
                 subtotal, stampData, tc, pageNum, totalPages
             } = data;
@@ -1496,13 +1724,14 @@ const blob = await res.blob();</textarea>
         }
 
         function getClassicTemplate(data) {
-            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            const { themeColor, headerTextColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            const subTextColor = headerTextColor === '#ffffff' ? '#e2e8f0' : '#9ca3af';
             return `
                 <div style="background:linear-gradient(135deg,${themeColor} 0%,${themeColor} 100%);padding:20px;margin:-20mm -20mm 20px -20mm;border-radius:0;text-align:center;">
-                    <h1 style="margin:0;font-size:20pt;color:white;font-weight:600;text-align:center;">${companyName}</h1>
-                    ${companyAddress ? `<p style="margin:5px 0;color:#e2e8f0;font-size:10pt;">${companyAddress}</p>` : ''}
-                    ${contactPerson ? `<p style="margin:5px 0;color:#e2e8f0;font-size:9pt;">${contactPerson}</p>` : ''}
-                    ${others ? `<p style="margin:5px 0;color:#cbd5e0;font-size:8pt;">${others}</p>` : ''}
+                    <h1 style="margin:0;font-size:20pt;color:${headerTextColor};font-weight:600;text-align:center;">${companyName}</h1>
+                    ${companyAddress ? `<p style="margin:5px 0;color:${subTextColor};font-size:10pt;">${companyAddress}</p>` : ''}
+                    ${contactPerson ? `<p style="margin:5px 0;color:${subTextColor};font-size:9pt;">${contactPerson}</p>` : ''}
+                    ${others ? `<p style="margin:5px 0;color:${subTextColor};font-size:8pt;opacity:0.8;">${others}</p>` : ''}
                 </div>
                 <div style="text-align:center;margin:15px 0;border:2px solid ${themeColor};padding:15px;border-radius:8px;">
                     <h2 style="margin:0;font-size:16pt;color:${themeColor};font-weight:700;">${type.toUpperCase()}</h2>
@@ -1547,16 +1776,16 @@ const blob = await res.blob();</textarea>
         }
 
         function getModernTemplate(data) {
-            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            const { themeColor, headerTextColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
             return `
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid ${themeColor};">
                     <div>
-                        <h1 style="margin:0;font-size:24pt;color:${themeColor};font-weight:800;">${companyName}</h1>
+                        <h1 style="margin:0;font-size:24pt;color:${headerTextColor};font-weight:800;">${companyName}</h1>
                         ${companyAddress ? `<p style="margin:5px 0;color:#64748b;font-size:10pt;">${companyAddress}</p>` : ''}
                         ${contactPerson ? `<p style="margin:5px 0;color:#64748b;font-size:9pt;">${contactPerson}</p>` : ''}
                     </div>
                     <div style="text-align:right;">
-                        <div style="background:${themeColor};color:white;padding:15px 30px;border-radius:0;font-size:24pt;font-weight:800;">${type.toUpperCase()}</div>
+                        <div style="background:${themeColor};color:${headerTextColor};padding:15px 30px;border-radius:0;font-size:24pt;font-weight:800;">${type.toUpperCase()}</div>
                         <p style="margin:10px 0 0 0;color:#64748b;font-size:9pt;">TAX INVOICE / RECEIPT</p>
                     </div>
                 </div>
@@ -1652,13 +1881,14 @@ const blob = await res.blob();</textarea>
         }
 
         function getBoldTemplate(data) {
-            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            const { themeColor, headerTextColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            const subTextColor = headerTextColor === '#ffffff' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.6)';
             return `
                 <div style="background:${themeColor};padding:25px;margin:-20mm -20mm 25px -20mm;text-align:center;">
-                    <h1 style="margin:0;font-size:24pt;color:white;font-weight:900;text-transform:uppercase;letter-spacing:3px;">${companyName}</h1>
-                    ${companyAddress ? `<p style="margin:8px 0;color:rgba(255,255,255,0.8);font-size:11pt;">${companyAddress}</p>` : ''}
-                    ${contactPerson ? `<p style="margin:8px 0;color:rgba(255,255,255,0.8);font-size:10pt;">${contactPerson}</p>` : ''}
-                    ${others ? `<p style="margin:8px 0;color:rgba(255,255,255,0.7);font-size:9pt;">${others}</p>` : ''}
+                    <h1 style="margin:0;font-size:24pt;color:${headerTextColor};font-weight:900;text-transform:uppercase;letter-spacing:3px;">${companyName}</h1>
+                    ${companyAddress ? `<p style="margin:8px 0;color:${subTextColor};font-size:11pt;">${companyAddress}</p>` : ''}
+                    ${contactPerson ? `<p style="margin:8px 0;color:${subTextColor};font-size:10pt;">${contactPerson}</p>` : ''}
+                    ${others ? `<p style="margin:8px 0;color:${subTextColor};font-size:9pt;opacity:0.7;">${others}</p>` : ''}
                 </div>
                 <div style="text-align:center;margin-bottom:25px;">
                     <div style="display:inline-block;background:#1f2937;color:white;padding:12px 40px;font-size:20pt;font-weight:900;text-transform:uppercase;letter-spacing:5px;">${type}</div>
