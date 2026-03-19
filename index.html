@@ -957,7 +957,7 @@
         <h2 data-i18n="companyInfo">3. 公司資料</h2>
         <div class="form-group">
             <label data-i18n="companyName">公司名稱 (Company Name) *</label>
-            <input type="text" id="companyName" placeholder="例如: ABC Company Limited">
+            <input type="text" id="companyName" data-i18n-placeholder="companyNamePlaceholder" placeholder="例如: ABC Company Limited">
         </div>
         <div class="row">
             <div class="form-group">
@@ -976,13 +976,13 @@
         <div class="form-group">
             <label data-i18n="companyStamp">公司蓋章 (Company Stamp)</label>
             <input type="file" id="stampFile" accept="image/*">
-            <div class="file-hint">上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方</div>
+            <div class="file-hint" data-i18n="stampHint">上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方</div>
             <img id="stampPreview" class="stamp-preview" alt="Stamp Preview">
         </div>
         <div class="form-group">
             <label data-i18n="companyLogo">公司標誌 (Company Logo)</label>
             <input type="file" id="logoFile" accept="image/*">
-            <div class="file-hint">上載公司標誌 (PNG/JPG) - 將顯示於收據上方</div>
+            <div class="file-hint" data-i18n="logoHint">上載公司標誌 (PNG/JPG) - 將顯示於收據上方</div>
             <img id="logoPreview" class="stamp-preview" alt="Logo Preview">
         </div>
         <div class="form-group">
@@ -1299,7 +1299,7 @@ const blob = await res.blob();</textarea>
     </div>
 
     <div id="preview">
-        <div class="preview-header">預覽 - 將生成以下收據：</div>
+        <div class="preview-header" data-i18n="previewHeader">預覽 - 將生成以下收據：</div>
         <div id="receiptList"></div>
     </div>
 
@@ -1352,6 +1352,18 @@ const blob = await res.blob();</textarea>
                 selectThemeColor: '選擇主題顏色',
                 companyStamp: '公司蓋章',
                 requiredFields: '檔案需包含以下欄位',
+                stampHint: '上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方',
+                logoHint: '上載公司標誌 (PNG/JPG) - 將顯示於收據上方',
+                companyNamePlaceholder: '例如: ABC Company Limited',
+                companyAddressPlaceholder: '例如: 香港中環皇后大道中99號',
+                contactPersonPlaceholder: '例如: John Smith',
+                othersPlaceholder: '例如: Tel: 1234-5678 | Email: info@abc.com',
+                taxNamePlaceholder: '例如: GST, VAT, Tax',
+                apiUrlPlaceholder: '例如: https://api.example.com/receipts',
+                apiKeyPlaceholder: '例如: Bearer token 或 API Key',
+                sheetsUrlPlaceholder: '例如: https://docs.google.com/spreadsheets/d/abc123/edit',
+                sheetsCsvUrlPlaceholder: '例如: https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv',
+                tcPlaceholder: '例如:\n• Payment within 30 days\n• Goods sold are not returnable',
                 apiUrl: 'API URL',
                 apiKey: 'API Key (可選)',
                 fieldMapping: '自訂欄位對應',
@@ -1373,7 +1385,8 @@ const blob = await res.blob();</textarea>
                 billTo: 'Bill To',
                 invoiceNo: 'Invoice No',
                 date: 'Date',
-                totalLabel: 'TOTAL'
+                totalLabel: 'TOTAL',
+                previewHeader: '預覽 - 將生成以下收據：'
             },
             en: {
                 title: 'Invoice/Quotation/Receipt Generator',
@@ -1420,6 +1433,18 @@ const blob = await res.blob();</textarea>
                 selectTemplate: 'Select Template Style',
                 selectThemeColor: 'Select Theme Color',
                 companyStamp: 'Company Stamp',
+                stampHint: 'Upload stamp image (PNG/JPG) - Will display at bottom right of receipt',
+                logoHint: 'Upload company logo (PNG/JPG) - Will display at top of receipt',
+                companyNamePlaceholder: 'e.g., ABC Company Limited',
+                companyAddressPlaceholder: 'e.g., 99 Queen\'s Road Central, Hong Kong',
+                contactPersonPlaceholder: 'e.g., John Smith',
+                othersPlaceholder: 'e.g., Tel: 1234-5678 | Email: info@abc.com',
+                taxNamePlaceholder: 'e.g., GST, VAT, Tax',
+                apiUrlPlaceholder: 'e.g., https://api.example.com/receipts',
+                apiKeyPlaceholder: 'e.g., Bearer token or API Key',
+                sheetsUrlPlaceholder: 'e.g., https://docs.google.com/spreadsheets/d/abc123/edit',
+                sheetsCsvUrlPlaceholder: 'e.g., https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv',
+                tcPlaceholder: 'e.g.,\n• Payment within 30 days\n• Goods sold are not returnable',
                 requiredFields: 'Required fields',
                 apiUrl: 'API URL',
                 apiKey: 'API Key (Optional)',
@@ -1442,7 +1467,8 @@ const blob = await res.blob();</textarea>
                 billTo: 'Bill To',
                 invoiceNo: 'Invoice No',
                 date: 'Date',
-                totalLabel: 'TOTAL'
+                totalLabel: 'TOTAL',
+                previewHeader: 'Preview - Will generate following receipts:'
             }
         };
 
@@ -1489,10 +1515,6 @@ const blob = await res.blob();</textarea>
             // Update main download button
             const mainBtn = document.querySelector('.btn-row .btn');
             if (mainBtn) mainBtn.textContent = t.download;
-
-            // Update preview header
-            const previewHeader = document.querySelector('.preview-header');
-            if (previewHeader) previewHeader.textContent = t.preview + ' - ' + (lang === 'zh' ? '將生成以下收據' : 'Will generate following receipts');
         }
 
         let excelData = [];
