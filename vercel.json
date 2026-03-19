@@ -1,8 +1,14 @@
 {
-  "functions": {
-    "api/receipt.js": {
-      "runtime": "nodejs18.x",
-      "memory": 1024
+  "builds": [
+    {
+      "src": "api/receipt.js",
+      "use": "@vercel/node"
     }
-  }
+  ],
+  "routes": [
+    {
+      "src": "/api/receipt",
+      "dest": "/api/receipt.js"
+    }
+  ]
 }
