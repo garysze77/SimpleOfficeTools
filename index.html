@@ -663,9 +663,9 @@
     </div>
 
     <div class="card">
-        <h2>1. 單據類型</h2>
+        <h2 data-i18n="docType">1. 單據類型</h2>
         <div class="form-group">
-            <label>選擇單據類型</label>
+            <label data-i18n="selectDocType">選擇單據類型</label>
             <div class="doc-type-options">
                 <label class="doc-type-option">
                     <input type="radio" name="docType" value="RECEIPT" checked>
@@ -702,7 +702,7 @@
             </div>
         </div>
         <div class="form-group" style="margin-top: 20px;">
-            <label>選擇範本樣式</label>
+            <label data-i18n="selectTemplate">選擇範本樣式</label>
             <div class="template-options">
                 <label class="template-option">
                     <input type="radio" name="template" value="classic" checked>
@@ -737,9 +737,9 @@
     </div>
 
     <div class="card">
-        <h2>2. 主題顏色</h2>
+        <h2 data-i18n="themeColor">2. 主題顏色</h2>
         <div class="form-group">
-            <label>選擇主題顏色</label>
+            <label data-i18n="selectThemeColor">選擇主題顏色</label>
             <div class="color-options">
                 <label class="color-option">
                     <input type="radio" name="themeColor" value="#3b82f6" checked>
@@ -775,12 +775,12 @@
             <div class="custom-color-wrapper">
                 <label class="custom-color-label">
                     <input type="color" id="customColor" class="custom-color-input" value="#3b82f6">
-                    <span class="custom-color-text">自訂顏色</span>
+                    <span class="custom-color-text" data-i18n="customColor">自訂顏色</span>
                 </label>
             </div>
         </div>
         <div class="form-group" style="margin-top: 20px;">
-            <label>Header 字體顏色</label>
+            <label data-i18n="headerTextColor">Header 字體顏色</label>
             <div class="header-text-options">
                 <label class="header-text-option">
                     <input type="radio" name="headerTextColor" value="light" checked>
@@ -801,27 +801,27 @@
     </div>
 
     <div class="card">
-        <h2>3. 公司資料</h2>
+        <h2 data-i18n="companyInfo">3. 公司資料</h2>
         <div class="form-group">
-            <label>公司名稱 (Company Name) *</label>
+            <label data-i18n="companyName">公司名稱 (Company Name) *</label>
             <input type="text" id="companyName" placeholder="例如: ABC Company Limited">
         </div>
         <div class="row">
             <div class="form-group">
-                <label>公司地址 (Company Address)</label>
+                <label data-i18n="companyAddress">公司地址 (Company Address)</label>
                 <input type="text" id="companyAddress" placeholder="例如: 香港中環皇后大道中99號">
             </div>
             <div class="form-group">
-                <label>聯絡人 (Contact Person)</label>
+                <label data-i18n="contactPerson">聯絡人 (Contact Person)</label>
                 <input type="text" id="contactPerson" placeholder="例如: John Smith">
             </div>
         </div>
         <div class="form-group">
-            <label>其它資料 (Others)</label>
+            <label data-i18n="others">其它資料 (Others)</label>
             <textarea id="others" placeholder="例如: Tel: 1234-5678 | Email: info@abc.com"></textarea>
         </div>
         <div class="form-group">
-            <label>公司蓋章 (Company Stamp)</label>
+            <label data-i18n="companyStamp">公司蓋章 (Company Stamp)</label>
             <input type="file" id="stampFile" accept="image/*">
             <div class="file-hint">上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方</div>
             <img id="stampPreview" class="stamp-preview" alt="Stamp Preview">
@@ -829,7 +829,7 @@
     </div>
 
     <div class="card">
-        <h2>4. 上載資料檔案 或 API</h2>
+        <h2 data-i18n="uploadFile">4. 上載資料檔案 或 API</h2>
 
         <!-- Data Source Toggle -->
         <div class="data-source-tabs">
@@ -842,12 +842,12 @@
         <!-- File Upload Section -->
         <div id="fileSection" class="tab-content active">
             <div class="form-group">
-                <label>選擇資料檔案 (Excel / CSV / JSON) *</label>
+                <label data-i18n="selectFile">選擇資料檔案 (Excel / CSV / JSON) *</label>
                 <input type="file" id="excelFile" accept=".xlsx, .xls, .csv, .json">
                 <div class="file-hint">檔案需包含以下欄位: Receipt_No, Date, Client_Name, Client_Address, Description, Unit_Cost, Qty, Amount, Type</div>
             </div>
             <div class="form-group">
-                <label>下載範本</label>
+                <label data-i18n="sampleDownload">下載範本</label>
                 <div class="sample-links">
                     <a href="#" onclick="downloadSample('xlsx'); return false;" class="sample-link">📊 Excel 範本</a>
                     <a href="#" onclick="downloadSample('csv'); return false;" class="sample-link">📄 CSV 範本</a>
@@ -859,7 +859,7 @@
         <!-- REST API Section -->
         <div id="restSection" class="tab-content">
             <div class="form-group">
-                <label>API URL *</label>
+                <label data-i18n="apiUrl">API URL *</label>
                 <input type="text" id="apiUrl" placeholder="例如: https://api.example.com/receipts">
             </div>
             <div class="form-group">
@@ -1058,7 +1058,7 @@ const blob = await res.blob();</textarea>
     </div>
 
     <div class="card">
-        <h2>4. T&C (Terms & Conditions)</h2>
+        <h2 data-i18n="tc">4. T&C (Terms & Conditions)</h2>
         <div class="form-group">
             <textarea id="tc" placeholder="例如:
 • Payment within 30 days
@@ -1113,6 +1113,10 @@ const blob = await res.blob();</textarea>
                 quotation: '報價單',
                 proforma: '形式發票',
                 selectFile: '選擇資料檔案 (Excel / CSV / JSON) *',
+                selectDocType: '選擇單據類型',
+                selectTemplate: '選擇範本樣式',
+                selectThemeColor: '選擇主題顏色',
+                companyStamp: '公司蓋章',
                 requiredFields: '檔案需包含以下欄位',
                 apiUrl: 'API URL',
                 apiKey: 'API Key (可選)',
@@ -1171,6 +1175,10 @@ const blob = await res.blob();</textarea>
                 quotation: 'Quotation',
                 proforma: 'Proforma',
                 selectFile: 'Select Data File (Excel / CSV / JSON) *',
+                selectDocType: 'Select Document Type',
+                selectTemplate: 'Select Template Style',
+                selectThemeColor: 'Select Theme Color',
+                companyStamp: 'Company Stamp',
                 requiredFields: 'Required fields',
                 apiUrl: 'API URL',
                 apiKey: 'API Key (Optional)',
@@ -1212,71 +1220,38 @@ const blob = await res.blob();</textarea>
         function applyLanguage(lang) {
             const t = translations[lang];
 
-            // Update card titles
-            const cardTitles = document.querySelectorAll('.card h2');
-            if (cardTitles[0]) cardTitles[0].textContent = t.docType;
-            if (cardTitles[1]) cardTitles[1].textContent = t.themeColor;
-            if (cardTitles[2]) cardTitles[2].textContent = t.companyInfo;
-            if (cardTitles[3]) cardTitles[3].textContent = t.uploadFile;
-            if (cardTitles[4]) cardTitles[4].textContent = t.tc;
-
-            // Update labels
-            const labels = document.querySelectorAll('label');
-            labels.forEach(label => {
-                const text = label.textContent.trim();
-                if (text === '選擇單據類型' || text === 'Document Type') {
-                    label.textContent = t.docType;
-                } else if (text === '選擇範本樣式' || text === 'Template Style') {
-                    label.textContent = t.template;
-                } else if (text === '選擇主題顏色' || text === 'Theme Color') {
-                    label.textContent = t.themeColor;
-                } else if (text === '公司名稱 (Company Name) *' || text === 'Company Name *') {
-                    label.textContent = t.companyName + ' *';
-                } else if (text === '公司地址 (Company Address)' || text === 'Company Address') {
-                    label.textContent = t.companyAddress;
-                } else if (text === '聯絡人 (Contact Person)' || text === 'Contact Person') {
-                    label.textContent = t.contactPerson;
-                } else if (text === '其它資料 (Others)' || text === 'Others') {
-                    label.textContent = t.others;
-                } else if (text === '公司蓋章 (Company Stamp)' || text === 'Company Stamp') {
-                    label.textContent = t.stamp;
-                } else if (text === '選擇資料檔案 (Excel / CSV / JSON) *' || text === 'Select Data File (Excel / CSV / JSON) *') {
-                    label.textContent = t.selectFile;
-                } else if (text === '下載範本' || text === 'Download Sample') {
-                    label.textContent = t.sampleDownload;
-                } else if (text === 'API URL *' || text === 'API URL *') {
-                    label.textContent = t.apiUrl;
-                } else if (text === 'API Key (可選)' || text === 'API Key (Optional)') {
-                    label.textContent = t.apiKey;
-                } else if (text === '自訂欄位對應 (可選)' || text === 'Field Mapping (Optional)') {
-                    label.textContent = t.fieldMapping;
-                } else if (text.includes('Google Sheets')) {
-                    label.textContent = t.sheetsUrl;
-                } else if (text.includes('CSV URL')) {
-                    label.textContent = t.sheetsCsvUrl;
-                } else if (text === 'Header 字體顏色' || text === 'Header Text Color') {
-                    label.textContent = t.headerTextColor;
-                } else if (text === '自訂顏色' || text === 'Custom Color') {
-                    label.textContent = t.customColor;
+            // Update all elements with data-i18n attribute
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.textContent = t[key];
                 }
             });
 
-            // Update buttons
-            const buttons = document.querySelectorAll('.btn');
-            if (buttons[0]) buttons[0].textContent = t.download;
+            // Update placeholders
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (t[key]) {
+                    el.placeholder = t[key];
+                }
+            });
 
             // Update tab buttons
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            tabBtns.forEach(btn => {
-                if (btn.dataset.tab === 'file') btn.textContent = '📁 ' + t.fileTab;
-                if (btn.dataset.tab === 'rest') btn.textContent = '🔗 ' + t.restTab;
-                if (btn.dataset.tab === 'sheets') btn.textContent = '📊 ' + t.sheetsTab;
-                if (btn.dataset.tab === 'apidoc') btn.textContent = '📖 ' + t.apiDocTab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const tab = btn.dataset.tab;
+                if (tab === 'file') btn.textContent = '📁 ' + t.fileTab;
+                if (tab === 'rest') btn.textContent = '🔗 ' + t.restTab;
+                if (tab === 'sheets') btn.textContent = '📊 ' + t.sheetsTab;
+                if (tab === 'apidoc') btn.textContent = '📖 ' + t.apiDocTab;
             });
+
+            // Update main download button
+            const mainBtn = document.querySelector('.btn-row .btn');
+            if (mainBtn) mainBtn.textContent = t.download;
 
             // Update preview header
             const previewHeader = document.querySelector('.preview-header');
-            if (previewHeader) previewHeader.textContent = t.preview + ' - 將生成以下收據：';
+            if (previewHeader) previewHeader.textContent = t.preview + ' - ' + (lang === 'zh' ? '將生成以下收據' : 'Will generate following receipts');
         }
 
         let excelData = [];
