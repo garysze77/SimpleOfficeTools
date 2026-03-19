@@ -52,6 +52,159 @@
             background: #0ea5e9;
             color: white;
         }
+        /* Currency Options */
+        .currency-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .currency-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .currency-option:hover {
+            border-color: #bae6fd;
+        }
+        .currency-option:has(input:checked) {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
+        .currency-option input {
+            display: none;
+        }
+        .currency-symbol {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0ea5e9;
+        }
+        .currency-name {
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .currency-custom-input {
+            width: 50px;
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        /* Tax Settings */
+        .tax-toggle {
+            margin-bottom: 10px;
+        }
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .toggle-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .tax-settings {
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        /* Dark Mode */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        body.dark-mode h1,
+        body.dark-mode .card h2,
+        body.dark-mode label {
+            color: #e2e8f0;
+        }
+        body.dark-mode .card {
+            background: #1e293b;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="file"],
+        body.dark-mode textarea,
+        body.dark-mode input[type="number"] {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+        body.dark-mode input::placeholder {
+            color: #94a3b8;
+        }
+        body.dark-mode .file-hint,
+        body.dark-mode .color-label,
+        body.dark-mode .doc-sublabel,
+        body.dark-mode .template-label {
+            color: #94a3b8;
+        }
+        body.dark-mode .color-swatch,
+        body.dark-mode .template-box,
+        body.dark-mode .doc-type-box,
+        body.dark-mode .currency-option,
+        body.dark-mode .header-text-box {
+            background: #334155;
+            border-color: #475569;
+        }
+        body.dark-mode .card h2 {
+            border-bottom-color: #334155;
+        }
+        body.dark-mode .preview-header {
+            color: #38bdf8;
+        }
+        body.dark-mode .receipt-group {
+            background: #334155;
+            border-color: #475569;
+        }
+        body.dark-mode .receipt-no {
+            color: #e2e8f0;
+        }
+        body.dark-mode .receipt-count {
+            color: #94a3b8;
+        }
+        body.dark-mode .tab-btn {
+            background: #334155;
+            color: #94a3b8;
+        }
+        body.dark-mode .tab-btn.active {
+            background: #0ea5e9;
+            color: white;
+        }
+        body.dark-mode .data-source-tabs {
+            background: #334155;
+        }
+        body.dark-mode #preview {
+            background: #1e293b;
+            border-color: #475569;
+        }
+        /* Dark mode toggle button */
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 20px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        body.dark-mode .dark-mode-toggle {
+            background: #1e293b;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
         .card {
             background: white;
             border-radius: 16px;
@@ -826,6 +979,80 @@
             <div class="file-hint">上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方</div>
             <img id="stampPreview" class="stamp-preview" alt="Stamp Preview">
         </div>
+        <div class="form-group">
+            <label data-i18n="companyLogo">公司標誌 (Company Logo)</label>
+            <input type="file" id="logoFile" accept="image/*">
+            <div class="file-hint">上載公司標誌 (PNG/JPG) - 將顯示於收據上方</div>
+            <img id="logoPreview" class="stamp-preview" alt="Logo Preview">
+        </div>
+        <div class="form-group">
+            <label data-i18n="currency">貨幣符號</label>
+            <div class="currency-options">
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="HKD" checked>
+                    <span class="currency-symbol">$</span>
+                    <span class="currency-name">HKD</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="USD">
+                    <span class="currency-symbol">$</span>
+                    <span class="currency-name">USD</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="EUR">
+                    <span class="currency-symbol">€</span>
+                    <span class="currency-name">EUR</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="GBP">
+                    <span class="currency-symbol">£</span>
+                    <span class="currency-name">GBP</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="CNY">
+                    <span class="currency-symbol">¥</span>
+                    <span class="currency-name">CNY</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="JPY">
+                    <span class="currency-symbol">¥</span>
+                    <span class="currency-name">JPY</span>
+                </label>
+                <label class="currency-option">
+                    <input type="radio" name="currency" value="custom">
+                    <input type="text" id="customCurrency" class="currency-custom-input" placeholder="其他" maxlength="3">
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label data-i18n="taxSettings">稅項設定 (Tax/GST)</label>
+            <div class="tax-toggle">
+                <label class="toggle-label">
+                    <input type="checkbox" id="enableTax">
+                    <span data-i18n="enableTax">啟用稅項</span>
+                </label>
+            </div>
+            <div class="tax-settings" id="taxSettingsPanel" style="display:none;">
+                <div class="row">
+                    <div class="form-group">
+                        <label data-i18n="taxRate">稅率 (%)</label>
+                        <input type="number" id="taxRate" value="0" min="0" max="100" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="taxName">稅項名稱</label>
+                        <input type="text" id="taxName" value="GST" placeholder="例如: GST, VAT, Tax">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 15px;">
+            <label data-i18n="settingsImportExport">設定匯入/匯出</label>
+            <div class="btn-row" style="margin-top: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="exportSettings()" style="flex:1;padding:10px;">📤 匯出設定</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('importFile').click()" style="flex:1;padding:10px;">📥 匯入設定</button>
+                <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importSettings(this)">
+            </div>
+        </div>
     </div>
 
     <div class="card">
@@ -1090,6 +1317,13 @@ const blob = await res.blob();</textarea>
                 contactPerson: '聯絡人',
                 others: '其它資料',
                 stamp: '公司蓋章',
+                companyLogo: '公司標誌',
+                currency: '貨幣符號',
+                taxSettings: '稅項設定',
+                enableTax: '啟用稅項',
+                taxRate: '稅率 (%)',
+                taxName: '稅項名稱',
+                settingsImportExport: '設定匯入/匯出',
                 uploadFile: '上載資料檔案 或 API',
                 fileTab: '上載檔案',
                 restTab: 'REST API',
@@ -1152,6 +1386,13 @@ const blob = await res.blob();</textarea>
                 contactPerson: 'Contact Person',
                 others: 'Others',
                 stamp: 'Company Stamp',
+                companyLogo: 'Company Logo',
+                currency: 'Currency',
+                taxSettings: 'Tax Settings',
+                enableTax: 'Enable Tax',
+                taxRate: 'Tax Rate (%)',
+                taxName: 'Tax Name',
+                settingsImportExport: 'Settings Import/Export',
                 uploadFile: 'Upload Data or API',
                 fileTab: 'Upload File',
                 restTab: 'REST API',
@@ -1257,6 +1498,203 @@ const blob = await res.blob();</textarea>
         let excelData = [];
         let stampData = null;
         let stampType = null;
+        let logoData = null;
+
+        // Load saved data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedData();
+        });
+
+        // Save company data to localStorage
+        function saveCompanyData() {
+            const data = {
+                companyName: document.getElementById('companyName').value,
+                companyAddress: document.getElementById('companyAddress').value,
+                contactPerson: document.getElementById('contactPerson').value,
+                others: document.getElementById('others').value,
+                themeColor: document.querySelector('input[name="themeColor"]:checked')?.value || '#3b82f6',
+                customColor: document.getElementById('customColor').value,
+                headerTextColor: document.querySelector('input[name="headerTextColor"]:checked')?.value || 'light',
+                template: document.querySelector('input[name="template"]:checked')?.value || 'classic',
+                docType: document.querySelector('input[name="docType"]:checked')?.value || 'RECEIPT',
+                currency: document.querySelector('input[name="currency"]:checked')?.value || 'HKD',
+                customCurrency: document.getElementById('customCurrency').value,
+                enableTax: document.getElementById('enableTax').checked,
+                taxRate: document.getElementById('taxRate').value,
+                taxName: document.getElementById('taxName').value,
+                tc: document.getElementById('tc').value
+            };
+            localStorage.setItem('receiptCompanyData', JSON.stringify(data));
+        }
+
+        // Load saved data from localStorage
+        function loadSavedData() {
+            const saved = localStorage.getItem('receiptCompanyData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.companyName) document.getElementById('companyName').value = data.companyName;
+                    if (data.companyAddress) document.getElementById('companyAddress').value = data.companyAddress;
+                    if (data.contactPerson) document.getElementById('contactPerson').value = data.contactPerson;
+                    if (data.others) document.getElementById('others').value = data.others;
+                    if (data.customColor) document.getElementById('customColor').value = data.customColor;
+                    if (data.headerTextColor) {
+                        document.querySelectorAll('input[name="headerTextColor"]').forEach(r => {
+                            if (r.value === data.headerTextColor) r.checked = true;
+                        });
+                    }
+                    if (data.template) {
+                        document.querySelectorAll('input[name="template"]').forEach(r => {
+                            if (r.value === data.template) r.checked = true;
+                        });
+                    }
+                    if (data.docType) {
+                        document.querySelectorAll('input[name="docType"]').forEach(r => {
+                            if (r.value === data.docType) r.checked = true;
+                        });
+                    }
+                    if (data.currency) {
+                        document.querySelectorAll('input[name="currency"]').forEach(r => {
+                            if (r.value === data.currency) r.checked = true;
+                        });
+                    }
+                    if (data.customCurrency) document.getElementById('customCurrency').value = data.customCurrency;
+                    if (data.enableTax) document.getElementById('enableTax').checked = data.enableTax;
+                    if (data.taxRate) document.getElementById('taxRate').value = data.taxRate;
+                    if (data.taxName) document.getElementById('taxName').value = data.taxName;
+                    if (data.tc) document.getElementById('tc').value = data.tc;
+
+                    // Show/hide tax settings
+                    toggleTaxSettings();
+                } catch (e) {
+                    console.error('Error loading saved data:', e);
+                }
+            }
+        }
+
+        // Auto-save when inputs change
+        document.addEventListener('change', function(e) {
+            if (['companyName', 'companyAddress', 'contactPerson', 'others', 'tc', 'taxRate', 'taxName', 'customCurrency'].includes(e.target.id)) {
+                saveCompanyData();
+            }
+        });
+
+        // Logo preview handling
+        document.getElementById('logoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoData = e.target.result;
+                    document.getElementById('logoPreview').src = logoData;
+                    document.getElementById('logoPreview').style.display = 'block';
+                    saveCompanyData();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Tax toggle
+        document.getElementById('enableTax').addEventListener('change', toggleTaxSettings);
+
+        function toggleTaxSettings() {
+            const enabled = document.getElementById('enableTax').checked;
+            document.getElementById('taxSettingsPanel').style.display = enabled ? 'block' : 'none';
+            saveCompanyData();
+        }
+
+        // Dark mode toggle
+        document.querySelector('body').insertAdjacentHTML('beforeend', '<button class="dark-mode-toggle" onclick="toggleDarkMode()">🌓</button>');
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('receiptDarkMode', isDark);
+        }
+
+        // Load dark mode preference
+        if (localStorage.getItem('receiptDarkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Export settings
+        function exportSettings() {
+            const data = {
+                companyName: document.getElementById('companyName').value,
+                companyAddress: document.getElementById('companyAddress').value,
+                contactPerson: document.getElementById('contactPerson').value,
+                others: document.getElementById('others').value,
+                themeColor: document.querySelector('input[name="themeColor"]:checked')?.value,
+                customColor: document.getElementById('customColor').value,
+                headerTextColor: document.querySelector('input[name="headerTextColor"]:checked')?.value,
+                template: document.querySelector('input[name="template"]:checked')?.value,
+                docType: document.querySelector('input[name="docType"]:checked')?.value,
+                currency: document.querySelector('input[name="currency"]:checked')?.value,
+                customCurrency: document.getElementById('customCurrency').value,
+                enableTax: document.getElementById('enableTax').checked,
+                taxRate: document.getElementById('taxRate').value,
+                taxName: document.getElementById('taxName').value,
+                tc: document.getElementById('tc').value
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'receipt-settings.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Import settings
+        function importSettings(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.companyName) document.getElementById('companyName').value = data.companyName;
+                    if (data.companyAddress) document.getElementById('companyAddress').value = data.companyAddress;
+                    if (data.contactPerson) document.getElementById('contactPerson').value = data.contactPerson;
+                    if (data.others) document.getElementById('others').value = data.others;
+                    if (data.customColor) document.getElementById('customColor').value = data.customColor;
+                    if (data.headerTextColor) {
+                        document.querySelectorAll('input[name="headerTextColor"]').forEach(r => {
+                            if (r.value === data.headerTextColor) r.checked = true;
+                        });
+                    }
+                    if (data.template) {
+                        document.querySelectorAll('input[name="template"]').forEach(r => {
+                            if (r.value === data.template) r.checked = true;
+                        });
+                    }
+                    if (data.docType) {
+                        document.querySelectorAll('input[name="docType"]').forEach(r => {
+                            if (r.value === data.docType) r.checked = true;
+                        });
+                    }
+                    if (data.currency) {
+                        document.querySelectorAll('input[name="currency"]').forEach(r => {
+                            if (r.value === data.currency) r.checked = true;
+                        });
+                    }
+                    if (data.customCurrency) document.getElementById('customCurrency').value = data.customCurrency;
+                    if (data.enableTax !== undefined) document.getElementById('enableTax').checked = data.enableTax;
+                    if (data.taxRate) document.getElementById('taxRate').value = data.taxRate;
+                    if (data.taxName) document.getElementById('taxName').value = data.taxName;
+                    if (data.tc) document.getElementById('tc').value = data.tc;
+
+                    toggleTaxSettings();
+                    saveCompanyData();
+                    alert('設定已匯入！');
+                } catch (err) {
+                    alert('匯入失敗: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
 
         // Handle custom color picker
         document.getElementById('customColor').addEventListener('input', function(e) {
@@ -1642,6 +2080,9 @@ const blob = await res.blob();</textarea>
             const type = docTypeRadio ? docTypeRadio.value : (firstItem.Type || 'RECEIPT');
             const dateStr = firstItem.Date ? formatDate(firstItem.Date) : '';
             const subtotal = items.reduce((sum, item) => sum + (item.Amount || 0), 0);
+            const taxInfo = getTaxInfo();
+            const taxAmount = calculateTax(subtotal);
+            const total = subtotal + taxAmount;
 
             // Get selected theme color
             // Get selected theme color - check custom color first
@@ -1684,7 +2125,11 @@ const blob = await res.blob();</textarea>
                 dateStr,
                 items,
                 subtotal,
+                taxAmount,
+                total,
+                taxInfo,
                 stampData,
+                logoData,
                 tc,
                 pageNum,
                 totalPages
@@ -1731,7 +2176,7 @@ const blob = await res.blob();</textarea>
             const {
                 template, themeColor, headerTextColor, companyName, companyAddress, contactPerson, others,
                 type, clientName, clientAddress, receiptNo, dateStr, items,
-                subtotal, stampData, tc, pageNum, totalPages
+                subtotal, taxAmount, total, taxInfo, stampData, logoData, tc, pageNum, totalPages
             } = data;
 
             const itemsHtml = items.map(item => `
@@ -1744,6 +2189,18 @@ const blob = await res.blob();</textarea>
             `).join('');
 
             const stampHtml = stampData ? `<img src="${stampData}" style="position:absolute;right:100px;bottom:50px;width:30mm;height:30mm;opacity:0.8;">` : '';
+            const logoHtml = logoData ? `<img src="${logoData}" style="max-width:80px;max-height:40px;margin-bottom:10px;">` : '';
+
+            // Tax row
+            let taxRowHtml = '';
+            if (taxInfo && taxAmount > 0) {
+                taxRowHtml = `
+                    <tr>
+                        <td colspan="3" style="text-align:right;padding:8px 10px;border-bottom:1px solid #e2e8f0;color:#64748b;">${taxInfo.name} (${taxInfo.rate}%)</td>
+                        <td style="text-align:right;padding:8px 10px;border-bottom:1px solid #e2e8f0;">${formatCurrency(taxAmount)}</td>
+                    </tr>
+                `;
+            }
 
             const tcHtml = tc ? `<div style="margin-top:25px;font-size:8pt;color:#4a5568;border-top:1px solid #e2e8f0;padding-top:10px;">
                 <strong>Terms & Conditions:</strong><br>
@@ -1759,13 +2216,13 @@ const blob = await res.blob();</textarea>
 
             switch (template) {
                 case 'modern':
-                    return getModernTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                    return getModernTemplate({...data, itemsHtml, stampHtml, logoHtml, taxRowHtml, tcHtml, totalBox});
                 case 'minimal':
-                    return getMinimalTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                    return getMinimalTemplate({...data, itemsHtml, stampHtml, logoHtml, taxRowHtml, tcHtml, totalBox});
                 case 'bold':
-                    return getBoldTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                    return getBoldTemplate({...data, itemsHtml, stampHtml, logoHtml, taxRowHtml, tcHtml, totalBox});
                 default:
-                    return getClassicTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                    return getClassicTemplate({...data, itemsHtml, stampHtml, logoHtml, taxRowHtml, tcHtml, totalBox});
             }
         }
 
@@ -1973,8 +2430,35 @@ const blob = await res.blob();</textarea>
             `;
         }
 
+        function getCurrencySymbol() {
+            const currency = document.querySelector('input[name="currency"]:checked')?.value || 'HKD';
+            const custom = document.getElementById('customCurrency').value;
+            const symbols = {
+                'HKD': '$',
+                'USD': '$',
+                'EUR': '€',
+                'GBP': '£',
+                'CNY': '¥',
+                'JPY': '¥'
+            };
+            return currency === 'custom' ? (custom || '$') : (symbols[currency] || '$');
+        }
+
         function formatCurrency(amount) {
-            return '$' + parseFloat(amount).toFixed(2);
+            return getCurrencySymbol() + parseFloat(amount).toFixed(2);
+        }
+
+        function calculateTax(subtotal) {
+            if (!document.getElementById('enableTax').checked) return 0;
+            const rate = parseFloat(document.getElementById('taxRate').value) || 0;
+            return subtotal * (rate / 100);
+        }
+
+        function getTaxInfo() {
+            if (!document.getElementById('enableTax').checked) return null;
+            const rate = parseFloat(document.getElementById('taxRate').value) || 0;
+            const name = document.getElementById('taxName').value || 'Tax';
+            return { name, rate };
         }
 
         // Sample data for downloads
