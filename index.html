@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice/Quotation/Receipt Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft JhengHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+            min-height: 100vh;
+        }
+        h1 {
+            color: #0c4a6e;
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.15);
+        }
+        .card h2 {
+            color: #1a1a2e;
+            font-size: 1.25rem;
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+            border-radius: 2px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        input[type="text"],
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            color: #1f2937;
+        }
+        input[type="text"]:focus,
+        input[type="file"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+        }
+        input[type="text"]::placeholder,
+        textarea::placeholder {
+            color: #9ca3af;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        .row {
+            display: flex;
+            gap: 16px;
+        }
+        .row .form-group {
+            flex: 1;
+        }
+        @media (max-width: 600px) {
+            .row {
+                flex-direction: column;
+            }
+        }
+        .btn {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(14, 165, 233, 0.5);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        #preview {
+            margin-top: 24px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            display: none;
+            border: 2px dashed #e2e8f0;
+        }
+        .preview-header {
+            font-weight: 700;
+            color: #0ea5e9;
+            margin-bottom: 16px;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .preview-header::before {
+            content: '📋';
+        }
+        .receipt-group {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .receipt-group:hover {
+            border-color: #0ea5e9;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+        }
+        .receipt-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .receipt-no {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1rem;
+        }
+        .receipt-count {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        .download-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+        }
+        .btn-row {
+            display: flex;
+            gap: 16px;
+        }
+        .btn-row .btn {
+            flex: 1;
+        }
+        .stamp-preview {
+            max-width: 150px;
+            max-height: 150px;
+            margin-top: 16px;
+            display: none;
+            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            padding: 8px;
+            background: #fafafa;
+        }
+        .file-hint {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        /* Color Swatch Selector */
+        .color-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .color-option {
+            position: relative;
+            cursor: pointer;
+        }
+        .color-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .color-swatch {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: 3px solid transparent;
+        }
+        .color-option input:checked + .color-swatch {
+            border-color: #0ea5e9;
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+        }
+        .color-swatch:hover {
+            transform: scale(1.05);
+        }
+        /* Document Type Selector */
+        .doc-type-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .doc-type-option {
+            position: relative;
+            cursor: pointer;
+            flex: 1;
+            min-width: 120px;
+        }
+        .doc-type-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .doc-type-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 12px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .doc-type-option input:checked + .doc-type-box {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
+        }
+        .doc-type-box:hover {
+            border-color: #bae6fd;
+            transform: translateY(-2px);
+        }
+        .doc-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .doc-label {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 14px;
+        }
+        .doc-sublabel {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        /* Template Selector */
+        .template-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .template-option {
+            position: relative;
+            cursor: pointer;
+            flex: 1;
+            min-width: 140px;
+        }
+        .template-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .template-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 10px;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .template-option input:checked + .template-box {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
+        }
+        .template-box:hover {
+            border-color: #bae6fd;
+            transform: translateY(-2px);
+        }
+        .template-preview {
+            width: 60px;
+            height: 40px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .template-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .template-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        .template-label {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 13px;
+        }
+        .color-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+        /* File input styling */
+        .file-input-wrapper {
+            position: relative;
+        }
+        .file-input-wrapper input[type="file"] {
+            padding: 12px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .file-input-wrapper input[type="file"]:hover {
+            background: #f3f4f6;
+        }
+        /* Custom Color Picker */
+        .custom-color-wrapper {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        .custom-color-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .custom-color-label:hover {
+            border-color: #0ea5e9;
+            background: #f0f9ff;
+        }
+        .custom-color-input {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .custom-color-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .custom-color-input::-webkit-color-swatch {
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .custom-color-text {
+            font-weight: 500;
+            color: #374151;
+        }
+        /* Sample file links */
+        .sample-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .sample-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            color: #0369a1;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 2px solid #bae6fd;
+            transition: all 0.3s ease;
+        }
+        .sample-link:hover {
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+        /* Data Source Tabs */
+        .data-source-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            background: #f1f5f9;
+            padding: 6px;
+            border-radius: 12px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .tab-btn:hover {
+            color: #0ea5e9;
+        }
+        .tab-btn.active {
+            background: white;
+            color: #0ea5e9;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Field Mapping */
+        .field-mapping {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .mapping-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .mapping-row input {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+        .mapping-row span {
+            color: #0ea5e9;
+            font-weight: 600;
+        }
+        /* API Documentation */
+        .api-doc h3 {
+            color: #0c4a6e;
+            margin: 0 0 15px 0;
+        }
+        .api-doc h4 {
+            color: #0369a1;
+            margin: 20px 0 10px 0;
+            font-size: 14px;
+        }
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1e293b;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .api-endpoint .method {
+            background: #10b981;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .api-endpoint code {
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre;
+            margin: 10px 0;
+        }
+        .field-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .field-list li {
+            margin: 8px 0;
+            color: #374151;
+        }
+        .field-list strong {
+            color: #0ea5e9;
+        }
+        .code-textarea {
+            font-family: monospace;
+            font-size: 12px;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            resize: vertical;
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Invoice/Quotation/Receipt Generator</h1>
+
+    <div class="card">
+        <h2>1. 單據類型</h2>
+        <div class="form-group">
+            <label>選擇單據類型</label>
+            <div class="doc-type-options">
+                <label class="doc-type-option">
+                    <input type="radio" name="docType" value="RECEIPT" checked>
+                    <div class="doc-type-box">
+                        <span class="doc-icon">🧾</span>
+                        <span class="doc-label">Receipt</span>
+                        <span class="doc-sublabel">收據</span>
+                    </div>
+                </label>
+                <label class="doc-type-option">
+                    <input type="radio" name="docType" value="INVOICE">
+                    <div class="doc-type-box">
+                        <span class="doc-icon">📄</span>
+                        <span class="doc-label">Invoice</span>
+                        <span class="doc-sublabel">發票/請求書</span>
+                    </div>
+                </label>
+                <label class="doc-type-option">
+                    <input type="radio" name="docType" value="QUOTATION">
+                    <div class="doc-type-box">
+                        <span class="doc-icon">📋</span>
+                        <span class="doc-label">Quotation</span>
+                        <span class="doc-sublabel">報價單</span>
+                    </div>
+                </label>
+                <label class="doc-type-option">
+                    <input type="radio" name="docType" value="PROFORMA">
+                    <div class="doc-type-box">
+                        <span class="doc-icon">📝</span>
+                        <span class="doc-label">Proforma</span>
+                        <span class="doc-sublabel">形式發票</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 20px;">
+            <label>選擇範本樣式</label>
+            <div class="template-options">
+                <label class="template-option">
+                    <input type="radio" name="template" value="classic" checked>
+                    <div class="template-box">
+                        <div class="template-icon">📋</div>
+                        <span class="template-label">Classic</span>
+                    </div>
+                </label>
+                <label class="template-option">
+                    <input type="radio" name="template" value="modern">
+                    <div class="template-box">
+                        <div class="template-icon">💎</div>
+                        <span class="template-label">Modern</span>
+                    </div>
+                </label>
+                <label class="template-option">
+                    <input type="radio" name="template" value="minimal">
+                    <div class="template-box">
+                        <div class="template-icon">📄</div>
+                        <span class="template-label">Minimal</span>
+                    </div>
+                </label>
+                <label class="template-option">
+                    <input type="radio" name="template" value="bold">
+                    <div class="template-box">
+                        <div class="template-icon">🔥</div>
+                        <span class="template-label">Bold</span>
+                    </div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2. 主題顏色</h2>
+        <div class="form-group">
+            <label>選擇主題顏色</label>
+            <div class="color-options">
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#3b82f6" checked>
+                    <div class="color-swatch" style="background:#3b82f6;"></div>
+                    <div class="color-label">藍色</div>
+                </label>
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#10b981">
+                    <div class="color-swatch" style="background:#10b981;"></div>
+                    <div class="color-label">綠色</div>
+                </label>
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#f59e0b">
+                    <div class="color-swatch" style="background:#f59e0b;"></div>
+                    <div class="color-label">橙色</div>
+                </label>
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#8b5cf6">
+                    <div class="color-swatch" style="background:#8b5cf6;"></div>
+                    <div class="color-label">紫色</div>
+                </label>
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#ec4899">
+                    <div class="color-swatch" style="background:#ec4899;"></div>
+                    <div class="color-label">粉紅</div>
+                </label>
+                <label class="color-option">
+                    <input type="radio" name="themeColor" value="#06b6d4">
+                    <div class="color-swatch" style="background:#06b6d4;"></div>
+                    <div class="color-label">青色</div>
+                </label>
+            </div>
+            <div class="custom-color-wrapper">
+                <label class="custom-color-label">
+                    <input type="color" id="customColor" class="custom-color-input" value="#3b82f6">
+                    <span class="custom-color-text">自訂顏色</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. 公司資料</h2>
+        <div class="form-group">
+            <label>公司名稱 (Company Name) *</label>
+            <input type="text" id="companyName" placeholder="例如: ABC Company Limited">
+        </div>
+        <div class="row">
+            <div class="form-group">
+                <label>公司地址 (Company Address)</label>
+                <input type="text" id="companyAddress" placeholder="例如: 香港中環皇后大道中99號">
+            </div>
+            <div class="form-group">
+                <label>聯絡人 (Contact Person)</label>
+                <input type="text" id="contactPerson" placeholder="例如: John Smith">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>其它資料 (Others)</label>
+            <textarea id="others" placeholder="例如: Tel: 1234-5678 | Email: info@abc.com"></textarea>
+        </div>
+        <div class="form-group">
+            <label>公司蓋章 (Company Stamp)</label>
+            <input type="file" id="stampFile" accept="image/*">
+            <div class="file-hint">上載蓋章圖片 (PNG/JPG) - 將顯示於收據右下方</div>
+            <img id="stampPreview" class="stamp-preview" alt="Stamp Preview">
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. 上載資料檔案 或 API</h2>
+
+        <!-- Data Source Toggle -->
+        <div class="data-source-tabs">
+            <button type="button" class="tab-btn active" data-tab="file">📁 上載檔案</button>
+            <button type="button" class="tab-btn" data-tab="rest">🔗 REST API</button>
+            <button type="button" class="tab-btn" data-tab="sheets">📊 Google Sheets</button>
+            <button type="button" class="tab-btn" data-tab="apidoc">📖 API 文件</button>
+        </div>
+
+        <!-- File Upload Section -->
+        <div id="fileSection" class="tab-content active">
+            <div class="form-group">
+                <label>選擇資料檔案 (Excel / CSV / JSON) *</label>
+                <input type="file" id="excelFile" accept=".xlsx, .xls, .csv, .json">
+                <div class="file-hint">檔案需包含以下欄位: Receipt_No, Date, Client_Name, Client_Address, Description, Unit_Cost, Qty, Amount, Type</div>
+            </div>
+            <div class="form-group">
+                <label>下載範本</label>
+                <div class="sample-links">
+                    <a href="#" onclick="downloadSample('xlsx'); return false;" class="sample-link">📊 Excel 範本</a>
+                    <a href="#" onclick="downloadSample('csv'); return false;" class="sample-link">📄 CSV 範本</a>
+                    <a href="#" onclick="downloadSample('json'); return false;" class="sample-link">📋 JSON 範本</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- REST API Section -->
+        <div id="restSection" class="tab-content">
+            <div class="form-group">
+                <label>API URL *</label>
+                <input type="text" id="apiUrl" placeholder="例如: https://api.example.com/receipts">
+            </div>
+            <div class="form-group">
+                <label>API Key (可選)</label>
+                <input type="text" id="apiKey" placeholder="例如: Bearer token 或 API Key">
+            </div>
+            <div class="form-group">
+                <label>自訂欄位對應 (可選)</label>
+                <div class="field-mapping">
+                    <div class="mapping-row">
+                        <input type="text" id="mapReceiptNo" placeholder="Receipt_No" value="Receipt_No">
+                        <span>→</span>
+                        <input type="text" id="mapReceiptNoTarget" placeholder="對應 API 欄位名" value="receipt_no">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapDate" placeholder="Date" value="Date">
+                        <span>→</span>
+                        <input type="text" id="mapDateTarget" placeholder="對應 API 欄位名" value="date">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapClientName" placeholder="Client_Name" value="Client_Name">
+                        <span>→</span>
+                        <input type="text" id="mapClientNameTarget" placeholder="對應 API 欄位名" value="client_name">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapClientAddress" placeholder="Client_Address" value="Client_Address">
+                        <span>→</span>
+                        <input type="text" id="mapClientAddressTarget" placeholder="對應 API 欄位名" value="client_address">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapDescription" placeholder="Description" value="Description">
+                        <span>→</span>
+                        <input type="text" id="mapDescriptionTarget" placeholder="對應 API 欄位名" value="description">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapUnitCost" placeholder="Unit_Cost" value="Unit_Cost">
+                        <span>→</span>
+                        <input type="text" id="mapUnitCostTarget" placeholder="對應 API 欄位名" value="unit_cost">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapQty" placeholder="Qty" value="Qty">
+                        <span>→</span>
+                        <input type="text" id="mapQtyTarget" placeholder="對應 API 欄位名" value="qty">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapAmount" placeholder="Amount" value="Amount">
+                        <span>→</span>
+                        <input type="text" id="mapAmountTarget" placeholder="對應 API 欄位名" value="amount">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" id="mapType" placeholder="Type" value="Type">
+                        <span>→</span>
+                        <input type="text" id="mapTypeTarget" placeholder="對應 API 欄位名" value="type">
+                    </div>
+                </div>
+                <div class="file-hint">左邊係收據標準欄位，右邊係你 API 返回既欄位名</div>
+            </div>
+            <button type="button" class="btn" id="fetchApiBtn" onclick="fetchFromAPI()">從 API 獲取數據</button>
+        </div>
+
+        <!-- Google Sheets Section -->
+        <div id="sheetsSection" class="tab-content">
+            <div class="form-group">
+                <label>Google Sheets URL *</label>
+                <input type="text" id="sheetsUrl" placeholder="例如: https://docs.google.com/spreadsheets/d/abc123/edit">
+                <div class="file-hint">請先將 Sheet 發布為 CSV: 檔案 → 發布至網頁 → 選擇 CSV</div>
+            </div>
+            <div class="form-group">
+                <label>或輸入已發布的 CSV URL</label>
+                <input type="text" id="sheetsCsvUrl" placeholder="例如: https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv">
+            </div>
+            <div class="form-group">
+                <label>自訂欄位對應 (可選，如欄位名相同可留空)</label>
+                <div class="field-mapping">
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Receipt_No" value="Receipt_No">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapReceiptNo" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Date" value="Date">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapDate" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Client_Name" value="Client_Name">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapClientName" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Client_Address" value="Client_Address">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapClientAddress" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Description" value="Description">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapDescription" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Unit_Cost" value="Unit_Cost">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapUnitCost" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Qty" value="Qty">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapQty" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Amount" value="Amount">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapAmount" placeholder="你既欄位名">
+                    </div>
+                    <div class="mapping-row">
+                        <input type="text" placeholder="Type" value="Type">
+                        <span>→</span>
+                        <input type="text" id="sheetsMapType" placeholder="你既欄位名">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn" id="fetchSheetsBtn" onclick="fetchFromSheets()">從 Google Sheets 獲取數據</button>
+        </div>
+
+        <!-- API Documentation Section -->
+        <div id="apidocSection" class="tab-content">
+            <div class="api-doc">
+                <h3>API Endpoint</h3>
+                <div class="api-endpoint">
+                    <span class="method">POST</span>
+                    <code>/api/receipt</code>
+                </div>
+
+                <h4>Request Body</h4>
+                <pre class="code-block">{
+  "companyName": "ABC Company Limited",
+  "companyAddress": "香港中環皇后大道中99號",
+  "contactPerson": "John Smith",
+  "others": "Tel: 1234-5678",
+  "themeColor": "#3b82f6",
+  "template": "classic", // classic, modern, minimal, bold
+  "tc": "Payment within 30 days",
+  "receipts": [
+    {
+      "receiptNo": "R001",
+      "date": "2024-01-15",
+      "clientName": "XYZ Company",
+      "clientAddress": "香港灣仔軒尼詩道100號",
+      "type": "RECEIPT", // or INVOICE, QUOTATION, PROFORMA
+      "items": [
+        { "description": "Service", "qty": 1, "unitCost": 100, "amount": 100 }
+      ]
+    }
+  ]
+}</pre>
+
+                <h4>必填欄位</h4>
+                <ul class="field-list">
+                    <li><strong>companyName</strong> - 公司名稱</li>
+                    <li><strong>receipts</strong> - 收據陣列</li>
+                    <li><strong>receiptNo</strong> - 收據編號</li>
+                    <li><strong>date</strong> - 日期</li>
+                    <li><strong>clientName</strong> - 客戶名稱</li>
+                    <li><strong>items</strong> - 項目陣列</li>
+                    <li><strong>type</strong> - 單據類型 (RECEIPT / INVOICE / QUOTATION / PROFORMA)</li>
+                    <li><strong>template</strong> - 範本樣式 (classic / modern / minimal / bold)</li>
+                </ul>
+
+                <h4>示例</h4>
+                <div class="form-group">
+                    <label>cURL</label>
+                    <textarea class="code-textarea" readonly>curl -X POST https://your-domain.vercel.app/api/receipt \
+  -H "Content-Type: application/json" \
+  -d '{"companyName":"ABC","receipts":[{"receiptNo":"R001","date":"2024-01-15","clientName":"Client","items":[{"description":"Test","qty":1,"unitCost":100,"amount":100}]}]}' \
+  --output receipt.pdf</textarea>
+                </div>
+                <div class="form-group">
+                    <label>JavaScript</label>
+                    <textarea class="code-textarea" readonly>const res = await fetch('/api/receipt', {
+  method: 'POST',
+  headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({
+    companyName: 'ABC',
+    receipts: [{
+      receiptNo: 'R001',
+      date: '2024-01-15',
+      clientName: 'Client',
+      items: [{description:'Test',qty:1,unitCost:100,amount:100}]
+    }]
+  })
+});
+const blob = await res.blob();</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. T&C (Terms & Conditions)</h2>
+        <div class="form-group">
+            <textarea id="tc" placeholder="例如:
+• Payment within 30 days
+• Goods sold are not returnable
+• Subject to company's standard terms and conditions"></textarea>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn" id="generateBtn" onclick="generatePDF()">下載全部</button>
+    </div>
+
+    <div id="preview">
+        <div class="preview-header">預覽 - 將生成以下收據：</div>
+        <div id="receiptList"></div>
+    </div>
+
+    <script>
+        let excelData = [];
+        let stampData = null;
+        let stampType = null;
+
+        // Handle custom color picker
+        document.getElementById('customColor').addEventListener('input', function(e) {
+            const customColor = e.target.value;
+            // Uncheck all radio buttons
+            document.querySelectorAll('input[name="themeColor"]').forEach(radio => {
+                radio.checked = false;
+            });
+            // The custom color will be used directly in the PDF generation
+        });
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tab = this.dataset.tab;
+
+                // Update tab buttons
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(tab + 'Section').classList.add('active');
+            });
+        });
+
+        // Get field mapping
+        function getFieldMapping() {
+            return {
+                Receipt_No: document.getElementById('mapReceiptNoTarget').value || 'receipt_no',
+                Date: document.getElementById('mapDateTarget').value || 'date',
+                Client_Name: document.getElementById('mapClientNameTarget').value || 'client_name',
+                Client_Address: document.getElementById('mapClientAddressTarget').value || 'client_address',
+                Description: document.getElementById('mapDescriptionTarget').value || 'description',
+                Unit_Cost: document.getElementById('mapUnitCostTarget').value || 'unit_cost',
+                Qty: document.getElementById('mapQtyTarget').value || 'qty',
+                Amount: document.getElementById('mapAmountTarget').value || 'amount',
+                Type: document.getElementById('mapTypeTarget').value || 'type'
+            };
+        }
+
+        // Map API data to standard format
+        function mapApiData(data, mapping) {
+            if (!Array.isArray(data)) {
+                // If API returns object with data array, try to find it
+                const possibleKeys = ['data', 'results', 'items', 'receipts'];
+                for (const key of possibleKeys) {
+                    if (Array.isArray(data[key])) {
+                        data = data[key];
+                        break;
+                    }
+                }
+            }
+
+            if (!Array.isArray(data)) {
+                throw new Error('API 返回的數據不是陣列格式');
+            }
+
+            return data.map(item => {
+                const mapped = {};
+                for (const [standardField, apiField] of Object.entries(mapping)) {
+                    mapped[standardField] = item[apiField] !== undefined ? item[apiField] : '';
+                }
+                return mapped;
+            });
+        }
+
+        // Fetch from REST API
+        async function fetchFromAPI() {
+            const apiUrl = document.getElementById('apiUrl').value.trim();
+            if (!apiUrl) {
+                alert('請輸入 API URL！');
+                return;
+            }
+
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const btn = document.getElementById('fetchApiBtn');
+            btn.textContent = '載入中...';
+            btn.disabled = true;
+
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (apiKey) {
+                    headers['Authorization'] = apiKey;
+                }
+
+                const response = await fetch(apiUrl, { headers });
+                if (!response.ok) {
+                    throw new Error('API 請求失敗: ' + response.status);
+                }
+
+                const data = await response.json();
+                const mapping = getFieldMapping();
+                excelData = mapApiData(data, mapping);
+
+                if (excelData.length === 0) {
+                    alert('API 返回的數據是空的！');
+                    return;
+                }
+
+                // Group by Receipt_No
+                const grouped = groupByReceiptNo(excelData);
+                showPreview(grouped);
+                alert('成功從 API 獲取 ' + excelData.length + ' 條數據！');
+            } catch (err) {
+                alert('API 請求出錯: ' + err.message);
+            } finally {
+                btn.textContent = '從 API 獲取數據';
+                btn.disabled = false;
+            }
+        }
+
+        // Fetch from Google Sheets
+        async function fetchFromSheets() {
+            let sheetsUrl = document.getElementById('sheetsCsvUrl').value.trim();
+            if (!sheetsUrl) {
+                sheetsUrl = document.getElementById('sheetsUrl').value.trim();
+            }
+
+            if (!sheetsUrl) {
+                alert('請輸入 Google Sheets URL！');
+                return;
+            }
+
+            // Convert edit URL to CSV export URL if needed
+            if (sheetsUrl.includes('/edit')) {
+                const match = sheetsUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) {
+                    const sheetId = match[1];
+                    sheetsUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                }
+            }
+
+            // If still not a csv URL, assume it's already a CSV export URL
+            if (!sheetsUrl.includes('export?format=csv') && !sheetsUrl.includes('output=csv')) {
+                alert('請使用已發布的 CSV URL (檔案 → 發布至網頁 → CSV)');
+                return;
+            }
+
+            const btn = document.getElementById('fetchSheetsBtn');
+            btn.textContent = '載入中...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(sheetsUrl);
+                if (!response.ok) {
+                    throw new Error('無法獲取 Sheets 數據: ' + response.status);
+                }
+
+                const text = await response.text();
+                const lines = text.split('\n').filter(line => line.trim());
+                if (lines.length < 2) {
+                    alert('Google Sheets 是空的！');
+                    return;
+                }
+
+                // Parse CSV
+                const parseCSVLine = (line) => {
+                    const result = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            inQuotes = !inQuotes;
+                        } else if (char === ',' && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result;
+                };
+
+                // Get field mapping for Google Sheets
+                const sheetsMapping = {
+                    Receipt_No: document.getElementById('sheetsMapReceiptNo').value || 'Receipt_No',
+                    Date: document.getElementById('sheetsMapDate').value || 'Date',
+                    Client_Name: document.getElementById('sheetsMapClientName').value || 'Client_Name',
+                    Client_Address: document.getElementById('sheetsMapClientAddress').value || 'Client_Address',
+                    Description: document.getElementById('sheetsMapDescription').value || 'Description',
+                    Unit_Cost: document.getElementById('sheetsMapUnitCost').value || 'Unit_Cost',
+                    Qty: document.getElementById('sheetsMapQty').value || 'Qty',
+                    Amount: document.getElementById('sheetsMapAmount').value || 'Amount',
+                    Type: document.getElementById('sheetsMapType').value || 'Type'
+                };
+
+                const headers = parseCSVLine(lines[0]);
+                excelData = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = parseCSVLine(lines[i]);
+                    const row = {};
+                    const sourceRow = {};
+                    headers.forEach((header, index) => {
+                        sourceRow[header] = values[index] || '';
+                    });
+                    // Map to standard fields
+                    for (const [standardField, sourceField] of Object.entries(sheetsMapping)) {
+                        row[standardField] = sourceRow[sourceField] !== undefined ? sourceRow[sourceField] : '';
+                    }
+                    excelData.push(row);
+                }
+
+                if (excelData.length === 0) {
+                    alert('Google Sheets 是空的！');
+                    return;
+                }
+
+                // Group by Receipt_No
+                const grouped = groupByReceiptNo(excelData);
+                showPreview(grouped);
+                alert('成功從 Google Sheets 獲取 ' + excelData.length + ' 條數據！');
+            } catch (err) {
+                alert('獲取 Google Sheets 出錯: ' + err.message);
+            } finally {
+                btn.textContent = '從 Google Sheets 獲取數據';
+                btn.disabled = false;
+            }
+        }
+
+        // Preview stamp when uploaded
+        document.getElementById('stampFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    stampData = e.target.result;
+                    stampType = file.type;
+                    document.getElementById('stampPreview').src = stampData;
+                    document.getElementById('stampPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Read data file (Excel, CSV, or JSON)
+        document.getElementById('excelFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    if (fileName.endsWith('.json')) {
+                        // Parse JSON
+                        excelData = JSON.parse(e.target.result);
+                        if (!Array.isArray(excelData)) {
+                            alert('JSON 檔案必須係一個陣列！');
+                            return;
+                        }
+                    } else if (fileName.endsWith('.csv')) {
+                        // Parse CSV
+                        const text = e.target.result;
+                        const lines = text.split('\n').filter(line => line.trim());
+                        if (lines.length < 2) {
+                            alert('CSV 檔案係空既！');
+                            return;
+                        }
+                        const headers = lines[0].split(',').map(h => h.trim());
+                        excelData = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = lines[i].split(',');
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index] ? values[index].trim() : '';
+                            });
+                            excelData.push(row);
+                        }
+                    } else {
+                        // Parse Excel (xlsx, xls)
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        excelData = XLSX.utils.sheet_to_json(firstSheet);
+                    }
+
+                    if (excelData.length === 0) {
+                        alert('檔案係空既！');
+                        return;
+                    }
+
+                    // Group by Receipt_No
+                    const grouped = groupByReceiptNo(excelData);
+                    showPreview(grouped);
+                } catch (err) {
+                    alert('讀取檔案出錯: ' + err.message);
+                }
+            };
+
+            if (fileName.endsWith('.json') || fileName.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        function groupByReceiptNo(data) {
+            const groups = {};
+            data.forEach(row => {
+                const receiptNo = row.Receipt_No;
+                if (!groups[receiptNo]) {
+                    groups[receiptNo] = [];
+                }
+                groups[receiptNo].push(row);
+            });
+            return groups;
+        }
+
+        function showPreview(grouped) {
+            const preview = document.getElementById('preview');
+            const list = document.getElementById('receiptList');
+            list.innerHTML = '';
+
+            const receiptNos = Object.keys(grouped).sort();
+            receiptNos.forEach(no => {
+                const items = grouped[no];
+                const total = items.reduce((sum, item) => sum + (item.Amount || 0), 0);
+                const div = document.createElement('div');
+                div.className = 'receipt-group';
+                div.innerHTML = `
+                    <div class="receipt-info">
+                        <span class="receipt-no">${no}</span>
+                        <span class="receipt-count">${items.length} 項 item | Total: $${total.toFixed(2)}</span>
+                    </div>
+                    <button class="download-btn" onclick="downloadSingleReceipt('${no}')">下載呢張</button>
+                `;
+                list.appendChild(div);
+            });
+
+            preview.style.display = 'block';
+        }
+
+        async function downloadSingleReceipt(receiptNo) {
+            await generateReceiptPDF(receiptNo);
+        }
+
+        async function generateReceiptPDF(receiptNo, saveAll = false) {
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName && !saveAll) {
+                alert('請輸入公司名稱！');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const companyAddress = document.getElementById('companyAddress').value;
+            const contactPerson = document.getElementById('contactPerson').value;
+            const others = document.getElementById('others').value;
+            const tc = document.getElementById('tc').value;
+
+            const grouped = groupByReceiptNo(excelData);
+
+            if (saveAll) {
+                const receiptNos = Object.keys(grouped).sort();
+                for (let i = 0; i < receiptNos.length; i++) {
+                    if (i > 0) {
+                        doc.addPage();
+                    }
+                    await renderReceiptToPDF(doc, receiptNos[i], grouped, companyName, companyAddress, contactPerson, others, tc, i + 1, receiptNos.length);
+                }
+                doc.save('receipts.pdf');
+            } else {
+                await renderReceiptToPDF(doc, receiptNo, grouped, companyName, companyAddress, contactPerson, others, tc, 1, 1);
+                doc.save(`receipt_${receiptNo}.pdf`);
+            }
+        }
+
+        async function renderReceiptToPDF(doc, receiptNo, grouped, companyName, companyAddress, contactPerson, others, tc, pageNum, totalPages) {
+            const items = grouped[receiptNo];
+            const firstItem = items[0];
+            const clientName = firstItem.Client_Name || '';
+            const clientAddress = firstItem.Client_Address || '';
+            // Get selected document type (override Excel data if selected)
+            const docTypeRadio = document.querySelector('input[name="docType"]:checked');
+            const type = docTypeRadio ? docTypeRadio.value : (firstItem.Type || 'RECEIPT');
+            const dateStr = firstItem.Date ? formatDate(firstItem.Date) : '';
+            const subtotal = items.reduce((sum, item) => sum + (item.Amount || 0), 0);
+
+            // Get selected theme color
+            // Get selected theme color - check custom color first
+            const customColor = document.getElementById('customColor').value;
+            const checkedRadio = document.querySelector('input[name="themeColor"]:checked');
+            const themeColor = checkedRadio ? checkedRadio.value : customColor;
+
+            // Get selected template
+            const templateRadio = document.querySelector('input[name="template"]:checked');
+            const template = templateRadio ? templateRadio.value : 'classic';
+
+            // Create hidden HTML element
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.width = '210mm';
+            container.style.padding = '20mm';
+            container.style.background = 'white';
+            container.style.fontFamily = '"Microsoft JhengHei", "PingFang SC", sans-serif';
+            container.style.fontSize = '10pt';
+
+            // Generate HTML based on template
+            container.innerHTML = getTemplateHTML({
+                template,
+                themeColor,
+                companyName,
+                companyAddress,
+                contactPerson,
+                others,
+                type,
+                clientName,
+                clientAddress,
+                receiptNo,
+                dateStr,
+                items,
+                subtotal,
+                stampData,
+                tc,
+                pageNum,
+                totalPages
+            });
+
+            document.body.appendChild(container);
+
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                doc.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+            } catch (err) {
+                console.error('PDF generation error:', err);
+                alert('生成 PDF 出錯: ' + err.message);
+            }
+
+            document.body.removeChild(container);
+        }
+
+        async function generatePDF() {
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName) {
+                alert('請輸入公司名稱！');
+                return;
+            }
+            if (excelData.length === 0) {
+                alert('請上載資料檔案！');
+                return;
+            }
+
+            await generateReceiptPDF(null, true);
+        }
+
+        // Template HTML generators
+        function getTemplateHTML(data) {
+            const {
+                template, themeColor, companyName, companyAddress, contactPerson, others,
+                type, clientName, clientAddress, receiptNo, dateStr, items,
+                subtotal, stampData, tc, pageNum, totalPages
+            } = data;
+
+            const itemsHtml = items.map(item => `
+                <tr>
+                    <td style="text-align:center;padding:10px;border-bottom:1px solid #e2e8f0;">${item.Qty || 0}</td>
+                    <td style="padding:10px;border-bottom:1px solid #e2e8f0;">${item.Description || ''}</td>
+                    <td style="text-align:right;padding:10px;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.Unit_Cost || 0)}</td>
+                    <td style="text-align:right;padding:10px;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.Amount || 0)}</td>
+                </tr>
+            `).join('');
+
+            const stampHtml = stampData ? `<img src="${stampData}" style="position:absolute;right:100px;bottom:50px;width:30mm;height:30mm;opacity:0.8;">` : '';
+
+            const tcHtml = tc ? `<div style="margin-top:25px;font-size:8pt;color:#4a5568;border-top:1px solid #e2e8f0;padding-top:10px;">
+                <strong>Terms & Conditions:</strong><br>
+                ${tc.replace(/\n/g, '<br>')}
+            </div>` : '';
+
+            const totalBox = `
+                <div style="background:linear-gradient(135deg,${themeColor} 0%,${themeColor} 100%);color:white;padding:15px 20px;border-radius:6px;margin-top:15px;display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:14pt;font-weight:600;">TOTAL</span>
+                    <span style="font-size:18pt;font-weight:700;">${formatCurrency(subtotal)}</span>
+                </div>
+            `;
+
+            switch (template) {
+                case 'modern':
+                    return getModernTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                case 'minimal':
+                    return getMinimalTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                case 'bold':
+                    return getBoldTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+                default:
+                    return getClassicTemplate({...data, itemsHtml, stampHtml, tcHtml, totalBox});
+            }
+        }
+
+        function getClassicTemplate(data) {
+            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            return `
+                <div style="background:linear-gradient(135deg,${themeColor} 0%,${themeColor} 100%);padding:20px;margin:-20mm -20mm 20px -20mm;border-radius:0;text-align:center;">
+                    <h1 style="margin:0;font-size:20pt;color:white;font-weight:600;text-align:center;">${companyName}</h1>
+                    ${companyAddress ? `<p style="margin:5px 0;color:#e2e8f0;font-size:10pt;">${companyAddress}</p>` : ''}
+                    ${contactPerson ? `<p style="margin:5px 0;color:#e2e8f0;font-size:9pt;">${contactPerson}</p>` : ''}
+                    ${others ? `<p style="margin:5px 0;color:#cbd5e0;font-size:8pt;">${others}</p>` : ''}
+                </div>
+                <div style="text-align:center;margin:15px 0;border:2px solid ${themeColor};padding:15px;border-radius:8px;">
+                    <h2 style="margin:0;font-size:16pt;color:${themeColor};font-weight:700;">${type.toUpperCase()}</h2>
+                    <h3 style="margin:5px 0;font-size:11pt;color:#4a5568;">TAX INVOICE / RECEIPT</h3>
+                </div>
+                <div style="display:flex;margin:15px 0;font-size:10pt;background:#f7fafc;padding:15px;border-radius:6px;border-left:4px solid ${themeColor};">
+                    <div style="flex:1;">
+                        <div style="color:${themeColor};font-weight:700;margin-bottom:8px;font-size:9pt;text-transform:uppercase;">From</div>
+                        <strong>${companyName}</strong><br>
+                        <span style="color:#4a5568;">${companyAddress ? companyAddress.replace(/\n/g, '<br>') : ''}</span>
+                    </div>
+                    <div style="flex:1;border-left:1px solid #e2e8f0;padding-left:15px;">
+                        <div style="color:${themeColor};font-weight:700;margin-bottom:8px;font-size:9pt;text-transform:uppercase;">Bill To</div>
+                        <strong>${clientName}</strong><br>
+                        <span style="color:#4a5568;">${clientAddress ? clientAddress.replace(/\n/g, '<br>') : ''}</span>
+                    </div>
+                </div>
+                <div style="margin:15px 0;font-size:10pt;background:#edf2f7;padding:10px 15px;border-radius:4px;display:flex;justify-content:space-between;">
+                    <span><strong>Invoice No:</strong> <span style="color:${themeColor};">${receiptNo}</span></span>
+                    <span><strong>Date:</strong> <span style="color:${themeColor};">${dateStr}</span></span>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10pt;margin:10px 0;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <thead>
+                        <tr style="background:linear-gradient(135deg,${themeColor} 0%,${themeColor} 100%);color:white;">
+                            <th style="padding:12px;text-align:center;">Qty</th>
+                            <th style="padding:12px;text-align:left;">Description</th>
+                            <th style="padding:12px;text-align:right;">Unit Price</th>
+                            <th style="padding:12px;text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                ${totalBox}
+                ${stampHtml}
+                ${tcHtml}
+                <div style="text-align:center;font-size:8pt;color:#888;margin-top:20px;">
+                    Page ${pageNum} of ${totalPages}
+                </div>
+            `;
+        }
+
+        function getModernTemplate(data) {
+            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            return `
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;padding-bottom:20px;border-bottom:3px solid ${themeColor};">
+                    <div>
+                        <h1 style="margin:0;font-size:24pt;color:${themeColor};font-weight:800;">${companyName}</h1>
+                        ${companyAddress ? `<p style="margin:5px 0;color:#64748b;font-size:10pt;">${companyAddress}</p>` : ''}
+                        ${contactPerson ? `<p style="margin:5px 0;color:#64748b;font-size:9pt;">${contactPerson}</p>` : ''}
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="background:${themeColor};color:white;padding:15px 30px;border-radius:0;font-size:24pt;font-weight:800;">${type.toUpperCase()}</div>
+                        <p style="margin:10px 0 0 0;color:#64748b;font-size:9pt;">TAX INVOICE / RECEIPT</p>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:25px;">
+                    <div style="flex:1;background:#f8fafc;padding:15px;border-radius:8px;">
+                        <div style="color:${themeColor};font-weight:700;margin-bottom:8px;font-size:9pt;text-transform:uppercase;">Bill To</div>
+                        <strong style="font-size:12pt;">${clientName}</strong><br>
+                        <span style="color:#64748b;font-size:10pt;">${clientAddress ? clientAddress.replace(/\n/g, '<br>') : ''}</span>
+                    </div>
+                    <div style="flex:1;text-align:right;padding:15px;">
+                        <div style="margin-bottom:10px;">
+                            <span style="color:#64748b;font-size:10pt;">Invoice No:</span>
+                            <strong style="font-size:12pt;margin-left:10px;">${receiptNo}</strong>
+                        </div>
+                        <div>
+                            <span style="color:#64748b;font-size:10pt;">Date:</span>
+                            <strong style="font-size:12pt;margin-left:10px;">${dateStr}</strong>
+                        </div>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10pt;margin:15px 0;border:1px solid ${themeColor};">
+                    <thead>
+                        <tr style="background:${themeColor};color:white;">
+                            <th style="padding:14px;text-align:center;">Qty</th>
+                            <th style="padding:14px;text-align:left;">Description</th>
+                            <th style="padding:14px;text-align:right;">Unit Price</th>
+                            <th style="padding:14px;text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div style="text-align:right;margin:20px 0;">
+                    ${totalBox}
+                </div>
+                ${stampHtml}
+                ${tcHtml}
+                <div style="text-align:center;font-size:8pt;color:#888;margin-top:20px;">
+                    Page ${pageNum} of ${totalPages}
+                </div>
+            `;
+        }
+
+        function getMinimalTemplate(data) {
+            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            return `
+                <div style="margin-bottom:30px;">
+                    <h1 style="margin:0;font-size:22pt;color:#1f2937;font-weight:300;">${companyName}</h1>
+                    ${companyAddress ? `<p style="margin:5px 0;color:#6b7280;font-size:10pt;">${companyAddress}</p>` : ''}
+                    ${contactPerson ? `<p style="margin:5px 0;color:#6b7280;font-size:9pt;">${contactPerson}</p>` : ''}
+                </div>
+                <div style="text-align:center;margin:25px 0;padding:20px 0;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+                    <h2 style="margin:0;font-size:28pt;color:${themeColor};font-weight:200;text-transform:uppercase;">${type}</h2>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:25px;font-size:10pt;">
+                    <div>
+                        <strong>From:</strong> ${companyName}
+                    </div>
+                    <div>
+                        <strong>To:</strong> ${clientName}
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10pt;margin:15px 0;">
+                    <thead>
+                        <tr style="border-bottom:2px solid #1f2937;">
+                            <th style="padding:10px;text-align:center;border-bottom:2px solid #1f2937;">Qty</th>
+                            <th style="padding:10px;text-align:left;border-bottom:2px solid #1f2937;">Description</th>
+                            <th style="padding:10px;text-align:right;border-bottom:2px solid #1f2937;">Unit Price</th>
+                            <th style="padding:10px;text-align:right;border-bottom:2px solid #1f2937;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin:25px 0;padding:15px 0;border-top:2px solid #1f2937;">
+                    <div style="font-size:10pt;">
+                        <span>Invoice No: ${receiptNo}</span>
+                        <span style="margin-left:20px;">Date: ${dateStr}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span style="font-size:12pt;font-weight:600;">TOTAL: </span>
+                        <span style="font-size:18pt;font-weight:700;color:${themeColor};">${formatCurrency(subtotal)}</span>
+                    </div>
+                </div>
+                ${stampHtml}
+                ${tcHtml}
+                <div style="text-align:center;font-size:8pt;color:#888;margin-top:20px;">
+                    Page ${pageNum} of ${totalPages}
+                </div>
+            `;
+        }
+
+        function getBoldTemplate(data) {
+            const { themeColor, companyName, companyAddress, contactPerson, others, type, clientName, clientAddress, receiptNo, dateStr, itemsHtml, subtotal, stampHtml, tcHtml, totalBox, pageNum, totalPages } = data;
+            return `
+                <div style="background:${themeColor};padding:25px;margin:-20mm -20mm 25px -20mm;text-align:center;">
+                    <h1 style="margin:0;font-size:24pt;color:white;font-weight:900;text-transform:uppercase;letter-spacing:3px;">${companyName}</h1>
+                    ${companyAddress ? `<p style="margin:8px 0;color:rgba(255,255,255,0.8);font-size:11pt;">${companyAddress}</p>` : ''}
+                    ${contactPerson ? `<p style="margin:8px 0;color:rgba(255,255,255,0.8);font-size:10pt;">${contactPerson}</p>` : ''}
+                    ${others ? `<p style="margin:8px 0;color:rgba(255,255,255,0.7);font-size:9pt;">${others}</p>` : ''}
+                </div>
+                <div style="text-align:center;margin-bottom:25px;">
+                    <div style="display:inline-block;background:#1f2937;color:white;padding:12px 40px;font-size:20pt;font-weight:900;text-transform:uppercase;letter-spacing:5px;">${type}</div>
+                </div>
+                <div style="display:flex;gap:20px;margin-bottom:20px;">
+                    <div style="flex:1;background:#fef3c7;padding:15px;border-radius:8px;border-left:5px solid #f59e0b;">
+                        <div style="color:#92400e;font-weight:700;font-size:9pt;text-transform:uppercase;margin-bottom:8px;">Bill To</div>
+                        <strong style="font-size:12pt;">${clientName}</strong><br>
+                        <span style="color:#92400e;font-size:10pt;">${clientAddress ? clientAddress.replace(/\n/g, '<br>') : ''}</span>
+                    </div>
+                    <div style="flex:1;background:#dbeafe;padding:15px;border-radius:8px;border-left:5px solid #3b82f6;">
+                        <div style="color:#1e40af;font-weight:700;font-size:9pt;text-transform:uppercase;margin-bottom:8px;">Details</div>
+                        <div style="margin-bottom:5px;"><strong>Invoice No:</strong> ${receiptNo}</div>
+                        <div><strong>Date:</strong> ${dateStr}</div>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:10pt;margin:15px 0;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                    <thead>
+                        <tr style="background:#1f2937;color:white;">
+                            <th style="padding:14px;text-align:center;">Qty</th>
+                            <th style="padding:14px;text-align:left;">Description</th>
+                            <th style="padding:14px;text-align:right;">Unit Price</th>
+                            <th style="padding:14px;text-align:right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${itemsHtml}
+                    </tbody>
+                </table>
+                ${totalBox}
+                ${stampHtml}
+                ${tcHtml}
+                <div style="text-align:center;font-size:8pt;color:#888;margin-top:20px;">
+                    Page ${pageNum} of ${totalPages}
+                </div>
+            `;
+        }
+
+        function formatCurrency(amount) {
+            return '$' + parseFloat(amount).toFixed(2);
+        }
+
+        // Sample data for downloads
+        const sampleData = [
+            { Receipt_No: "R001", Date: "2024-01-15", Client_Name: "ABC Company Ltd", Client_Address: "香港中環皇后大道中99號", Description: "Consulting Services", Unit_Cost: 500, Qty: 2, Amount: 1000, Type: "RECEIPT" },
+            { Receipt_No: "R001", Date: "2024-01-15", Client_Name: "ABC Company Ltd", Client_Address: "香港中環皇后大道中99號", Description: "Software License", Unit_Cost: 250, Qty: 2, Amount: 500, Type: "RECEIPT" },
+            { Receipt_No: "R002", Date: "2024-01-20", Client_Name: "XYZ Trading Co", Client_Address: "香港灣仔軒尼詩道100號", Description: "Web Development", Unit_Cost: 1500, Qty: 1, Amount: 1500, Type: "INVOICE" },
+            { Receipt_No: "R002", Date: "2024-01-20", Client_Name: "XYZ Trading Co", Client_Address: "香港灣仔軒尼詩道100號", Description: "Hosting (1 year)", Unit_Cost: 120, Qty: 12, Amount: 1440, Type: "INVOICE" }
+        ];
+
+        function downloadSample(format) {
+            let content, filename, mimeType;
+
+            if (format === 'json') {
+                content = JSON.stringify(sampleData, null, 2);
+                filename = 'sample_receipts.json';
+                mimeType = 'application/json';
+            } else if (format === 'csv') {
+                const headers = Object.keys(sampleData[0]);
+                const rows = sampleData.map(row => headers.map(h => row[h]).join(','));
+                content = [headers.join(','), ...rows].join('\n');
+                filename = 'sample_receipts.csv';
+                mimeType = 'text/csv';
+            } else {
+                // Excel - use XLSX library
+                const ws = XLSX.utils.json_to_sheet(sampleData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Receipts");
+                XLSX.writeFile(wb, 'sample_receipts.xlsx');
+                return;
+            }
+
+            // Download JSON or CSV
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return '';
+            if (typeof dateValue === 'string') return dateValue;
+            // Handle Excel date serial number
+            if (typeof dateValue === 'number') {
+                const excelEpoch = new Date(1899, 11, 30);
+                const date = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+                return date.toLocaleDateString('en-GB');
+            }
+            return String(dateValue);
+        }
+    </script>
+</body>
+</html>
