@@ -1205,8 +1205,79 @@ const blob = await res.blob();</textarea>
                 currentLang = this.dataset.lang;
                 document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
+                applyLanguage(currentLang);
             });
         });
+
+        function applyLanguage(lang) {
+            const t = translations[lang];
+
+            // Update card titles
+            const cardTitles = document.querySelectorAll('.card h2');
+            if (cardTitles[0]) cardTitles[0].textContent = t.docType;
+            if (cardTitles[1]) cardTitles[1].textContent = t.themeColor;
+            if (cardTitles[2]) cardTitles[2].textContent = t.companyInfo;
+            if (cardTitles[3]) cardTitles[3].textContent = t.uploadFile;
+            if (cardTitles[4]) cardTitles[4].textContent = t.tc;
+
+            // Update labels
+            const labels = document.querySelectorAll('label');
+            labels.forEach(label => {
+                const text = label.textContent.trim();
+                if (text === '選擇單據類型' || text === 'Document Type') {
+                    label.textContent = t.docType;
+                } else if (text === '選擇範本樣式' || text === 'Template Style') {
+                    label.textContent = t.template;
+                } else if (text === '選擇主題顏色' || text === 'Theme Color') {
+                    label.textContent = t.themeColor;
+                } else if (text === '公司名稱 (Company Name) *' || text === 'Company Name *') {
+                    label.textContent = t.companyName + ' *';
+                } else if (text === '公司地址 (Company Address)' || text === 'Company Address') {
+                    label.textContent = t.companyAddress;
+                } else if (text === '聯絡人 (Contact Person)' || text === 'Contact Person') {
+                    label.textContent = t.contactPerson;
+                } else if (text === '其它資料 (Others)' || text === 'Others') {
+                    label.textContent = t.others;
+                } else if (text === '公司蓋章 (Company Stamp)' || text === 'Company Stamp') {
+                    label.textContent = t.stamp;
+                } else if (text === '選擇資料檔案 (Excel / CSV / JSON) *' || text === 'Select Data File (Excel / CSV / JSON) *') {
+                    label.textContent = t.selectFile;
+                } else if (text === '下載範本' || text === 'Download Sample') {
+                    label.textContent = t.sampleDownload;
+                } else if (text === 'API URL *' || text === 'API URL *') {
+                    label.textContent = t.apiUrl;
+                } else if (text === 'API Key (可選)' || text === 'API Key (Optional)') {
+                    label.textContent = t.apiKey;
+                } else if (text === '自訂欄位對應 (可選)' || text === 'Field Mapping (Optional)') {
+                    label.textContent = t.fieldMapping;
+                } else if (text.includes('Google Sheets')) {
+                    label.textContent = t.sheetsUrl;
+                } else if (text.includes('CSV URL')) {
+                    label.textContent = t.sheetsCsvUrl;
+                } else if (text === 'Header 字體顏色' || text === 'Header Text Color') {
+                    label.textContent = t.headerTextColor;
+                } else if (text === '自訂顏色' || text === 'Custom Color') {
+                    label.textContent = t.customColor;
+                }
+            });
+
+            // Update buttons
+            const buttons = document.querySelectorAll('.btn');
+            if (buttons[0]) buttons[0].textContent = t.download;
+
+            // Update tab buttons
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                if (btn.dataset.tab === 'file') btn.textContent = '📁 ' + t.fileTab;
+                if (btn.dataset.tab === 'rest') btn.textContent = '🔗 ' + t.restTab;
+                if (btn.dataset.tab === 'sheets') btn.textContent = '📊 ' + t.sheetsTab;
+                if (btn.dataset.tab === 'apidoc') btn.textContent = '📖 ' + t.apiDocTab;
+            });
+
+            // Update preview header
+            const previewHeader = document.querySelector('.preview-header');
+            if (previewHeader) previewHeader.textContent = t.preview + ' - 將生成以下收據：';
+        }
 
         let excelData = [];
         let stampData = null;
