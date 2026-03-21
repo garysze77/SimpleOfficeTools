@@ -1,7 +1,8 @@
 const fontkit = require('fontkit');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -15,7 +16,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Dynamic import pdfmake
     const PdfPrinter = (await import('pdfmake')).default;
 
     const {
@@ -25,12 +25,10 @@ module.exports = async function handler(req, res) {
       others = '',
       receipts = [],
       themeColor = '#3b82f6',
-      template = 'classic',
       currency = '$',
       taxEnabled = false,
       taxRate = 0,
       taxName = 'Tax',
-      logoData = null,
       tc = ''
     } = req.body;
 
@@ -42,7 +40,6 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'receipts array is required' });
     }
 
-    // Currency symbol mapping
     const getCurrencySymbol = (curr) => {
       const symbols = { 'HKD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£', 'CNY': '¥', 'JPY': '¥' };
       return symbols[curr] || curr || '$';
@@ -50,7 +47,6 @@ module.exports = async function handler(req, res) {
     const currencySymbol = getCurrencySymbol(currency);
     const formatCurrency = (amount) => currencySymbol + parseFloat(amount).toFixed(2);
 
-    // Parse hex color
     const hexToRgb = (hex) => {
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return result ? {
@@ -62,31 +58,50 @@ module.exports = async function handler(req, res) {
     const themeRGB = hexToRgb(themeColor);
     const themeColorRgb = `rgb(${themeRGB.r}, ${themeRGB.g}, ${themeRGB.b})`;
 
-    // Try to load a font that supports Chinese
-    let chineseFont;
-    try {
-      // Try common system fonts for Chinese
-      chineseFont = fontkit.createFromFile('/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf') ||
-                    fontkit.createFromFile('/System/Library/Fonts/PingFang.ttc') ||
-                    fontkit.createFromFile('/System/Library/Fonts/STHeiti Light.ttc');
-    } catch (e) {
-      // If no system font, use basic font
-      console.log('No Chinese font found, using fallback');
+    // Find a font that supports Chinese
+    let chineseFont = null;
+    const fontPaths = [
+      '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+      '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+      '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+      '/usr/share/fonts/truetype/arphic/uming.ttc',
+      '/usr/share/fonts/truetype/arphic/ukai.ttc',
+      '/System/Library/Fonts/PingFang.ttc',
+      '/System/Library/Fonts/STHeiti Light.ttc',
+    ];
+
+    for (const fontPath of fontPaths) {
+      try {
+        if (fs.existsSync(fontPath)) {
+          chineseFont = fontkit.openSync(fontPath);
+          console.log('Found font:', fontPath);
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
     }
 
-    // Use Helvetica as fallback
-    const fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      }
+    // Get font names
+    let fontNames = {
+      normal: 'Helvetica',
+      bold: 'Helvetica-Bold',
+      italics: 'Helvetica-Oblique',
+      bolditalics: 'Helvetica-BoldOblique'
     };
 
+    if (chineseFont) {
+      fontNames = {
+        normal: chineseFont.fonts[0].familyName || 'Noto Sans',
+        bold: chineseFont.fonts[0].familyName || 'Noto Sans',
+        italics: chineseFont.fonts[0].familyName || 'Noto Sans',
+        bolditalics: chineseFont.fonts[0].familyName || 'Noto Sans'
+      };
+    }
+
+    const fonts = { Helvetica: fontNames };
     const printer = new PdfPrinter(fonts);
 
-    // Build PDF content
     const content = [];
 
     receipts.forEach((receipt, index) => {
@@ -96,7 +111,6 @@ module.exports = async function handler(req, res) {
       const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
       const grandTotal = subtotal + taxAmount;
 
-      // Build items table
       const tableBody = [
         [
           { text: 'Qty', fillColor: themeColorRgb, color: 'white', alignment: 'center' },
