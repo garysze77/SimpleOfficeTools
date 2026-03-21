@@ -1,7 +1,6 @@
-const fontkit = require('fontkit');
+const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-const PDFDocument = require('pdfkit');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,14 +54,15 @@ module.exports = async function handler(req, res) {
       } : { r: 59, g: 130, b: 246 };
     };
     const themeRGB = hexToRgb(themeColor);
+    const themeColorStr = `#${themeColor.replace('#', '')}`;
 
     // Load embedded Chinese font
-    let chineseFont = null;
     const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansCJKsc-Regular.otf');
+    let font = 'Helvetica';
 
     try {
       if (fs.existsSync(fontPath)) {
-        chineseFont = fontkit.openSync(fontPath);
+        font = 'NotoSans';
         console.log('Loaded Chinese font from:', fontPath);
       } else {
         console.log('Font file not found at:', fontPath);
@@ -78,13 +78,14 @@ module.exports = async function handler(req, res) {
     });
 
     // Register fonts with pdfkit
-    if (chineseFont) {
-      doc.registerFont('NotoSans', fontPath);
-    }
+    doc.registerFont('NotoSans', fontPath);
 
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => {});
+
+    const pageWidth = 210;
+    const margin = 20;
+    const contentWidth = pageWidth - 2 * margin;
 
     // Process each receipt
     receipts.forEach((receipt, index) => {
@@ -98,123 +99,121 @@ module.exports = async function handler(req, res) {
       const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
       const grandTotal = subtotal + taxAmount;
 
-      const pageWidth = 210;
-      const margin = 20;
+      let y = 20;
 
       // Header background
-      doc.rect(0, 0, pageWidth, 35).fill(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.rect(0, 0, pageWidth, 40).fill(themeColorStr);
 
       // Company name
-      const font = chineseFont ? 'NotoSans' : 'Helvetica';
-      doc.fillColor(255, 255, 255).fontSize(18).font(font).text(companyName, margin, 12, { align: 'center', width: pageWidth - 2 * margin });
+      doc.fillColor('#ffffff').fontSize(18).font(font).text(companyName, margin, 12, { align: 'center', width: contentWidth });
 
       // Company details
       if (companyAddress) {
-        doc.fontSize(9).text(companyAddress, margin, 20, { align: 'center', width: pageWidth - 2 * margin });
+        doc.fontSize(9).text(companyAddress, margin, 22, { align: 'center', width: contentWidth });
       }
       if (contactPerson) {
-        doc.fontSize(8).text(contactPerson, margin, 26, { align: 'center', width: pageWidth - 2 * margin });
+        doc.fontSize(8).text(contactPerson, margin, 30, { align: 'center', width: contentWidth });
       }
-      if (others) {
-        doc.fontSize(7).text(others, margin, 30, { align: 'center', width: pageWidth - 2 * margin });
-      }
+
+      y = 50;
 
       // Document type box
-      const boxY = 45;
-      doc.rect(margin, boxY, pageWidth - 2 * margin, 20).stroke(themeRGB.r, themeRGB.g, themeRGB.b);
-      doc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(14).text(type.toUpperCase(), margin, boxY + 5, { align: 'center', width: pageWidth - 2 * margin });
-      doc.fillColor(100, 100, 100).fontSize(10).text('TAX INVOICE / RECEIPT', margin, boxY + 12, { align: 'center', width: pageWidth - 2 * margin });
+      doc.rect(margin, y, contentWidth, 22).fillAndStroke(themeColorStr, themeColorStr);
+      doc.fillColor('#ffffff').fontSize(14).text(type.toUpperCase(), margin, y + 5, { align: 'center', width: contentWidth });
 
-      // From / Bill To
-      const sectionY = 75;
-      const boxWidth = (pageWidth - 2 * margin - 5) / 2;
+      y += 30;
+
+      // From / Bill To boxes
+      const boxWidth = (contentWidth - 5) / 2;
+      const boxHeight = 35;
 
       // From box
-      doc.rect(margin, sectionY, boxWidth, 30).fill(247, 250, 252);
-      doc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(8).font(font).text('FROM', margin + 5, sectionY + 5);
-      doc.fillColor(0, 0, 0).fontSize(10).text(companyName, margin + 5, sectionY + 12);
+      doc.rect(margin, y, boxWidth, boxHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+      doc.fillColor(themeColorStr).fontSize(8).font(font).text('FROM', margin + 5, y + 5);
+      doc.fillColor('#000000').fontSize(10).text(companyName, margin + 5, y + 14);
       if (companyAddress) {
-        doc.fillColor(100, 100, 100).fontSize(9).text(companyAddress, margin + 5, sectionY + 18);
+        doc.fillColor('#718096').fontSize(8).text(companyAddress, margin + 5, y + 23);
       }
 
       // Bill To box
       const billToX = margin + boxWidth + 5;
-      doc.rect(billToX, sectionY, boxWidth, 30).fill(247, 250, 252);
-      doc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(8).text('BILL TO', billToX + 5, sectionY + 5);
-      doc.fillColor(0, 0, 0).fontSize(10).text(clientName, billToX + 5, sectionY + 12);
+      doc.rect(billToX, y, boxWidth, boxHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+      doc.fillColor(themeColorStr).fontSize(8).text('BILL TO', billToX + 5, y + 5);
+      doc.fillColor('#000000').fontSize(10).text(clientName, billToX + 5, y + 14);
       if (clientAddress) {
-        doc.fillColor(100, 100, 100).fontSize(9).text(clientAddress, billToX + 5, sectionY + 18);
+        doc.fillColor('#718096').fontSize(8).text(clientAddress, billToX + 5, y + 23);
       }
 
-      // Invoice details
-      const detailsY = sectionY + 35;
-      doc.rect(margin, detailsY, pageWidth - 2 * margin, 10).fill(237, 242, 247);
-      doc.fillColor(0, 0, 0).fontSize(9).text(`Invoice No: ${receiptNo}`, margin + 5, detailsY + 3);
-      doc.text(`Date: ${date}`, margin + 100, detailsY + 3);
+      y += boxHeight + 10;
 
-      // Items table
-      const tableY = detailsY + 18;
-      const rowHeight = 8;
+      // Invoice details
+      doc.rect(margin, y, contentWidth, 12).fillAndStroke('#edf2f7', '#e2e8f0');
+      doc.fillColor('#000000').fontSize(9).text(`Invoice No: ${receiptNo}`, margin + 5, y + 3);
+      doc.text(`Date: ${date}`, margin + 100, y + 3);
+      y += 20;
+
+      // Items table header
+      const rowHeight = 10;
       const colWidths = [20, 90, 35, 35];
       const cols = ['Qty', 'Description', 'Unit Price', 'Amount'];
 
-      // Table header
-      doc.rect(margin, tableY, pageWidth - 2 * margin, rowHeight).fill(themeRGB.r, themeRGB.g, themeRGB.b);
-      doc.fillColor(255, 255, 255).fontSize(8).font(font);
+      doc.rect(margin, y, contentWidth, rowHeight).fillAndStroke(themeColorStr, themeColorStr);
+      doc.fillColor('#ffffff').fontSize(8).font(font);
       let xPos = margin + 5;
       cols.forEach((col, i) => {
         const align = i === 0 || i === 2 || i === 3 ? 'center' : 'left';
-        doc.text(col, xPos, tableY + 2, { width: colWidths[i], align });
+        doc.text(col, xPos, y + 2, { width: colWidths[i], align });
         xPos += colWidths[i];
       });
+      y += rowHeight;
 
       // Table rows
-      let currentY = tableY + rowHeight;
       items.forEach((item, i) => {
-        const bgColor = i % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
-        doc.rect(margin, currentY, pageWidth - 2 * margin, rowHeight).fill(bgColor[0], bgColor[1], bgColor[2]);
+        const bgColor = i % 2 === 0 ? '#ffffff' : '#f7fafc';
+        doc.rect(margin, y, contentWidth, rowHeight).fillAndStroke(bgColor, '#e2e8f0');
 
-        doc.fillColor(0, 0, 0).fontSize(8).font(font);
+        doc.fillColor('#000000').fontSize(8).font(font);
         xPos = margin + 5;
         const rowData = [String(item.qty || 0), item.description || '', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)];
         rowData.forEach((cell, j) => {
           const align = j === 0 || j === 2 || j === 3 ? 'center' : 'left';
-          doc.text(cell, xPos, currentY + 2, { width: colWidths[j], align });
+          doc.text(cell, xPos, y + 2, { width: colWidths[j], align });
           xPos += colWidths[j];
         });
-        currentY += rowHeight;
+        y += rowHeight;
       });
 
-      // Subtotal
-      doc.rect(margin + 145, currentY, 70, rowHeight).fill(247, 250, 252);
-      doc.fillColor(100, 100, 100).fontSize(8).text('Subtotal:', margin + 150, currentY + 2);
-      doc.fillColor(0, 0, 0).text(formatCurrency(subtotal), margin + 180, currentY + 2, { width: 35, align: 'right' });
-      currentY += rowHeight;
+      // Subtotal row
+      y += 5;
+      doc.rect(margin + 145, y, 70, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+      doc.fillColor('#718096').fontSize(8).text('Subtotal:', margin + 150, y + 2);
+      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + 180, y + 2, { width: 35, align: 'right' });
+      y += rowHeight;
 
-      // Tax
+      // Tax row
       if (taxEnabled && taxAmount > 0) {
-        doc.rect(margin + 145, currentY, 70, rowHeight).fill(247, 250, 252);
-        doc.fillColor(100, 100, 100).fontSize(8).text(`${taxName} (${taxRate}%):`, margin + 150, currentY + 2);
-        doc.fillColor(0, 0, 0).text(formatCurrency(taxAmount), margin + 180, currentY + 2, { width: 35, align: 'right' });
-        currentY += rowHeight;
+        doc.rect(margin + 145, y, 70, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+        doc.fillColor('#718096').fontSize(8).text(`${taxName} (${taxRate}%):`, margin + 150, y + 2);
+        doc.fillColor('#000000').text(formatCurrency(taxAmount), margin + 180, y + 2, { width: 35, align: 'right' });
+        y += rowHeight;
       }
 
-      // Total
-      const totalY = currentY;
-      doc.rect(margin + 145, totalY, 70, rowHeight + 2).fill(themeRGB.r, themeRGB.g, themeRGB.b);
-      doc.fillColor(255, 255, 255).fontSize(10).text('TOTAL', margin + 150, totalY + 3);
-      doc.fontSize(12).text(formatCurrency(grandTotal), margin + 180, totalY + 3, { width: 35, align: 'right' });
+      // Total row
+      y += 3;
+      doc.rect(margin + 145, y, 70, rowHeight + 4).fillAndStroke(themeColorStr, themeColorStr);
+      doc.fillColor('#ffffff').fontSize(10).text('TOTAL', margin + 150, y + 4);
+      doc.fontSize(12).text(formatCurrency(grandTotal), margin + 180, y + 4, { width: 35, align: 'right' });
 
       // Terms & Conditions
       if (tc) {
-        const tcY = totalY + rowHeight + 10;
-        doc.moveTo(margin, tcY).lineTo(pageWidth - margin, tcY).stroke(226, 232, 240);
-        doc.fillColor(74, 85, 104).fontSize(8).text('Terms & Conditions:', margin, tcY + 5);
-        doc.fontSize(8).text(tc, margin, tcY + 12, { width: pageWidth - 2 * margin });
+        y += rowHeight + 15;
+        doc.moveTo(margin, y).lineTo(pageWidth - margin, y).stroke('#e2e8f0');
+        doc.fillColor('#4a5568').fontSize(8).text('Terms & Conditions:', margin, y + 5);
+        doc.fontSize(8).text(tc, margin, y + 14, { width: contentWidth });
       }
 
       // Page number
-      doc.fillColor(150, 150, 150).fontSize(8).text(`Page ${index + 1} of ${receipts.length}`, margin, 287, { align: 'center', width: pageWidth - 2 * margin });
+      doc.fillColor('#a0aec0').fontSize(8).text(`Page ${index + 1} of ${receipts.length}`, margin, 280, { align: 'center', width: contentWidth });
     });
 
     doc.end();
