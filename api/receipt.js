@@ -1,3 +1,5 @@
+const fontkit = require('fontkit');
+
 module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +16,7 @@ module.exports = async function handler(req, res) {
 
   try {
     // Dynamic import pdfmake
-    const PdfPrinter = await import('pdfmake');
+    const PdfPrinter = (await import('pdfmake')).default;
 
     const {
       companyName,
@@ -60,7 +62,19 @@ module.exports = async function handler(req, res) {
     const themeRGB = hexToRgb(themeColor);
     const themeColorRgb = `rgb(${themeRGB.r}, ${themeRGB.g}, ${themeRGB.b})`;
 
-    // Use Helvetica (basic font that supports Latin) - for Chinese we rely on system
+    // Try to load a font that supports Chinese
+    let chineseFont;
+    try {
+      // Try common system fonts for Chinese
+      chineseFont = fontkit.createFromFile('/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf') ||
+                    fontkit.createFromFile('/System/Library/Fonts/PingFang.ttc') ||
+                    fontkit.createFromFile('/System/Library/Fonts/STHeiti Light.ttc');
+    } catch (e) {
+      // If no system font, use basic font
+      console.log('No Chinese font found, using fallback');
+    }
+
+    // Use Helvetica as fallback
     const fonts = {
       Helvetica: {
         normal: 'Helvetica',
@@ -70,7 +84,7 @@ module.exports = async function handler(req, res) {
       }
     };
 
-    const printer = new PdfPrinter.default(fonts);
+    const printer = new PdfPrinter(fonts);
 
     // Build PDF content
     const content = [];
@@ -84,7 +98,6 @@ module.exports = async function handler(req, res) {
 
       // Build items table
       const tableBody = [
-        // Header
         [
           { text: 'Qty', fillColor: themeColorRgb, color: 'white', alignment: 'center' },
           { text: 'Description', fillColor: themeColorRgb, color: 'white' },
@@ -93,7 +106,6 @@ module.exports = async function handler(req, res) {
         ]
       ];
 
-      // Data rows
       items.forEach((item, i) => {
         tableBody.push([
           { text: String(item.qty || 0), alignment: 'center', fillColor: i % 2 === 0 ? 'white' : '#f9fafb' },
@@ -103,7 +115,6 @@ module.exports = async function handler(req, res) {
         ]);
       });
 
-      // Subtotal
       tableBody.push([
         { text: '', border: [false, false, false, false] },
         { text: 'Subtotal', colSpan: 2, alignment: 'right', bold: true, fillColor: '#f7fafc' },
@@ -111,7 +122,6 @@ module.exports = async function handler(req, res) {
         { text: formatCurrency(subtotal), alignment: 'right', fillColor: '#f7fafc' }
       ]);
 
-      // Tax
       if (taxEnabled && taxAmount > 0) {
         tableBody.push([
           { text: '', border: [false, false, false, false] },
@@ -121,7 +131,6 @@ module.exports = async function handler(req, res) {
         ]);
       }
 
-      // Total
       tableBody.push([
         { text: '', border: [false, false, false, false] },
         { text: 'TOTAL', colSpan: 2, alignment: 'right', bold: true, color: 'white', fillColor: themeColorRgb },
@@ -129,28 +138,19 @@ module.exports = async function handler(req, res) {
         { text: formatCurrency(grandTotal), alignment: 'right', bold: true, color: 'white', fillColor: themeColorRgb }
       ]);
 
-      // Build receipt content
       const receiptContent = [
-        // Header
         {
           fillColor: themeColorRgb,
           table: { body: [[{ text: companyName, color: 'white', fontSize: 18, bold: true, alignment: 'center' }]] },
           layout: 'noBorders',
-          margin: [0, 0, 0, 5] as [number, number, number, number]
+          margin: [0, 0, 0, 5]
         }
       ];
 
-      if (companyAddress) {
-        receiptContent.push({ text: companyAddress, color: '#e2e8f0', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3] });
-      }
-      if (contactPerson) {
-        receiptContent.push({ text: contactPerson, color: '#e2e8f0', fontSize: 8, alignment: 'center', margin: [0, 0, 0, 2] });
-      }
-      if (others) {
-        receiptContent.push({ text: others, color: '#cbd5e0', fontSize: 7, alignment: 'center', margin: [0, 0, 0, 5] });
-      }
+      if (companyAddress) receiptContent.push({ text: companyAddress, color: '#e2e8f0', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3] });
+      if (contactPerson) receiptContent.push({ text: contactPerson, color: '#e2e8f0', fontSize: 8, alignment: 'center', margin: [0, 0, 0, 2] });
+      if (others) receiptContent.push({ text: others, color: '#cbd5e0', fontSize: 7, alignment: 'center', margin: [0, 0, 0, 5] });
 
-      // Document type box
       receiptContent.push({
         stack: [
           { text: type.toUpperCase(), color: themeColorRgb, fontSize: 14, bold: true, alignment: 'center', margin: [0, 10, 0, 5] },
@@ -161,7 +161,6 @@ module.exports = async function handler(req, res) {
         margin: [20, 0, 20, 10]
       });
 
-      // From / Bill To
       receiptContent.push({
         columns: [
           {
@@ -184,7 +183,6 @@ module.exports = async function handler(req, res) {
         margin: [0, 0, 0, 10]
       });
 
-      // Invoice details
       receiptContent.push({
         text: `Invoice No: ${receiptNo}          Date: ${date}`,
         fontSize: 9,
@@ -193,7 +191,6 @@ module.exports = async function handler(req, res) {
         padding: 8
       });
 
-      // Items table
       receiptContent.push({
         table: {
           headerRows: 1,
@@ -201,7 +198,7 @@ module.exports = async function handler(req, res) {
           body: tableBody
         },
         layout: {
-          hLineWidth: (i: number, node: any) => (i === 0 || i === 1 || i === node.table.body.length) ? 1 : 0.5,
+          hLineWidth: () => 1,
           vLineWidth: () => 0,
           hLineColor: () => '#e2e8f0',
           paddingLeft: () => 8,
@@ -212,11 +209,10 @@ module.exports = async function handler(req, res) {
         margin: [0, 0, 0, 10]
       });
 
-      // Terms & Conditions
       if (tc) {
         receiptContent.push({
           stack: [
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 475, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }] as any[] },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 475, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }] },
             { text: 'Terms & Conditions:', bold: true, fontSize: 8, margin: [0, 10, 0, 5] },
             { text: tc, fontSize: 8, color: '#4a5568' }
           ],
@@ -224,7 +220,6 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      // Page number
       receiptContent.push({
         text: `Page ${index + 1} of ${receipts.length}`,
         alignment: 'center',
@@ -235,13 +230,11 @@ module.exports = async function handler(req, res) {
 
       content.push(receiptContent);
 
-      // Add page break if not last receipt
       if (index < receipts.length - 1) {
         content.push({ text: '', pageBreak: 'after' });
       }
     });
 
-    // Create PDF document
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [20, 20, 20, 20],
@@ -252,7 +245,6 @@ module.exports = async function handler(req, res) {
       }
     };
 
-    // Generate PDF
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
     const chunks = [];
@@ -261,12 +253,10 @@ module.exports = async function handler(req, res) {
 
     pdfDoc.end();
 
-    // Wait for PDF to be generated
     await new Promise(resolve => pdfDoc.on('end', resolve));
 
     const pdfBuffer = Buffer.concat(chunks);
 
-    // Return PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="receipts.pdf"`);
     return res.send(pdfBuffer);
