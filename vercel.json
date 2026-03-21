@@ -6,7 +6,11 @@
     },
     {
       "src": "api/receipt.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "memory": 1024,
+        "maxDuration": 60
+      }
     }
   ],
   "routes": [

@@ -1,7 +1,7 @@
 {
   "name": "receipt-generator-api",
   "version": "1.0.0",
-  "description": "Receipt PDF Generator API",
+  "description": "Receipt PDF Generator API with Chinese support",
   "scripts": {
     "start": "npx serve .",
     "dev": "vercel dev"
@@ -10,6 +10,8 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.1",
     "html2canvas": "^1.4.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "puppeteer-core": "^21.0.0",
+    "@sparticuz/chromium": "^123.0.0"
   }
 }
