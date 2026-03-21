@@ -1,6 +1,7 @@
 const fontkit = require('fontkit');
 const fs = require('fs');
 const path = require('path');
+const PdfPrinter = require('pdfkit');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,10 +17,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Use require for pdfmake (CommonJS)
-    const pdfmake = require('pdfmake/build/pdfmake');
-    const PdfPrinter = pdfmake.PdfPrinter;
-
     const {
       companyName,
       companyAddress = '',
@@ -58,7 +55,6 @@ module.exports = async function handler(req, res) {
       } : { r: 59, g: 130, b: 246 };
     };
     const themeRGB = hexToRgb(themeColor);
-    const themeColorRgb = `rgb(${themeRGB.r}, ${themeRGB.g}, ${themeRGB.b})`;
 
     // Load embedded Chinese font
     let chineseFont = null;
@@ -75,194 +71,147 @@ module.exports = async function handler(req, res) {
       console.log('Error loading font:', e.message);
     }
 
-    // Define fonts with Chinese support
-    let fonts = {
-      Helvetica: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      }
-    };
+    // Create PDF document
+    const doc = new PdfPrinter(chineseFont || 'Helvetica');
 
-    if (chineseFont) {
-      fonts = {
-        NotoSans: {
-          normal: chineseFont,
-          bold: chineseFont,
-          italics: chineseFont,
-          bolditalics: chineseFont
-        }
-      };
-    }
+    const pdfDoc = doc.createDocument({
+      size: 'A4',
+      margins: { top: 20, bottom: 20, left: 20, right: 20 }
+    });
 
-    const printer = new PdfPrinter(fonts);
+    const chunks = [];
+    pdfDoc.on('data', chunk => chunks.push(chunk));
+    pdfDoc.on('end', () => {});
 
-    const content = [];
-
+    // Process each receipt
     receipts.forEach((receipt, index) => {
+      if (index > 0) {
+        pdfDoc.addPage();
+      }
+
       const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'RECEIPT' } = receipt;
 
       const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
       const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
       const grandTotal = subtotal + taxAmount;
 
-      const tableBody = [
-        [
-          { text: 'Qty', fillColor: themeColorRgb, color: 'white', alignment: 'center' },
-          { text: 'Description', fillColor: themeColorRgb, color: 'white' },
-          { text: 'Unit Price', fillColor: themeColorRgb, color: 'white', alignment: 'right' },
-          { text: 'Amount', fillColor: themeColorRgb, color: 'white', alignment: 'right' }
-        ]
-      ];
+      const pageWidth = 210;
+      const margin = 20;
 
+      // Header background
+      pdfDoc.rect(0, 0, pageWidth, 35).fill(themeRGB.r, themeRGB.g, themeRGB.b);
+
+      // Company name
+      pdfDoc.fillColor(255, 255, 255).fontSize(18).font(chineseFont ? chineseFont : 'Helvetica').text(companyName, margin, 12, { align: 'center', width: pageWidth - 2 * margin });
+
+      // Company details
+      if (companyAddress) {
+        pdfDoc.fontSize(9).text(companyAddress, margin, 20, { align: 'center', width: pageWidth - 2 * margin });
+      }
+      if (contactPerson) {
+        pdfDoc.fontSize(8).text(contactPerson, margin, 26, { align: 'center', width: pageWidth - 2 * margin });
+      }
+      if (others) {
+        pdfDoc.fontSize(7).text(others, margin, 30, { align: 'center', width: pageWidth - 2 * margin });
+      }
+
+      // Document type box
+      const boxY = 45;
+      pdfDoc.rect(margin, boxY, pageWidth - 2 * margin, 20).stroke(themeRGB.r, themeRGB.g, themeRGB.b);
+      pdfDoc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(14).text(type.toUpperCase(), margin, boxY + 5, { align: 'center', width: pageWidth - 2 * margin });
+      pdfDoc.fillColor(100, 100, 100).fontSize(10).text('TAX INVOICE / RECEIPT', margin, boxY + 12, { align: 'center', width: pageWidth - 2 * margin });
+
+      // From / Bill To
+      const sectionY = 75;
+      const boxWidth = (pageWidth - 2 * margin - 5) / 2;
+
+      // From box
+      pdfDoc.rect(margin, sectionY, boxWidth, 30).fill(247, 250, 252);
+      pdfDoc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(8).text('FROM', margin + 5, sectionY + 5);
+      pdfDoc.fillColor(0, 0, 0).fontSize(10).text(companyName, margin + 5, sectionY + 12);
+      if (companyAddress) {
+        pdfDoc.fillColor(100, 100, 100).fontSize(9).text(companyAddress, margin + 5, sectionY + 18);
+      }
+
+      // Bill To box
+      const billToX = margin + boxWidth + 5;
+      pdfDoc.rect(billToX, sectionY, boxWidth, 30).fill(247, 250, 252);
+      pdfDoc.fillColor(themeRGB.r, themeRGB.g, themeRGB.b).fontSize(8).text('BILL TO', billToX + 5, sectionY + 5);
+      pdfDoc.fillColor(0, 0, 0).fontSize(10).text(clientName, billToX + 5, sectionY + 12);
+      if (clientAddress) {
+        pdfDoc.fillColor(100, 100, 100).fontSize(9).text(clientAddress, billToX + 5, sectionY + 18);
+      }
+
+      // Invoice details
+      const detailsY = sectionY + 35;
+      pdfDoc.rect(margin, detailsY, pageWidth - 2 * margin, 10).fill(237, 242, 247);
+      pdfDoc.fillColor(0, 0, 0).fontSize(9).text(`Invoice No: ${receiptNo}`, margin + 5, detailsY + 3);
+      pdfDoc.text(`Date: ${date}`, margin + 100, detailsY + 3);
+
+      // Items table
+      const tableY = detailsY + 18;
+      const rowHeight = 8;
+      const colWidths = [20, 90, 35, 35];
+      const cols = ['Qty', 'Description', 'Unit Price', 'Amount'];
+
+      // Table header
+      pdfDoc.rect(margin, tableY, pageWidth - 2 * margin, rowHeight).fill(themeRGB.r, themeRGB.g, themeRGB.b);
+      pdfDoc.fillColor(255, 255, 255).fontSize(8);
+      let xPos = margin + 5;
+      cols.forEach((col, i) => {
+        const align = i === 0 || i === 2 || i === 3 ? 'center' : 'left';
+        pdfDoc.text(col, xPos, tableY + 2, { width: colWidths[i], align });
+        xPos += colWidths[i];
+      });
+
+      // Table rows
+      let currentY = tableY + rowHeight;
       items.forEach((item, i) => {
-        tableBody.push([
-          { text: String(item.qty || 0), alignment: 'center', fillColor: i % 2 === 0 ? 'white' : '#f9fafb' },
-          { text: item.description || '', fillColor: i % 2 === 0 ? 'white' : '#f9fafb' },
-          { text: formatCurrency(item.unitCost || 0), alignment: 'right', fillColor: i % 2 === 0 ? 'white' : '#f9fafb' },
-          { text: formatCurrency(item.amount || 0), alignment: 'right', fillColor: i % 2 === 0 ? 'white' : '#f9fafb' }
-        ]);
-      });
+        const bgColor = i % 2 === 0 ? [255, 255, 255] : [249, 250, 251];
+        pdfDoc.rect(margin, currentY, pageWidth - 2 * margin, rowHeight).fill(bgColor[0], bgColor[1], bgColor[2]);
 
-      tableBody.push([
-        { text: '', border: [false, false, false, false] },
-        { text: 'Subtotal', colSpan: 2, alignment: 'right', bold: true, fillColor: '#f7fafc' },
-        { text: '', fillColor: '#f7fafc' },
-        { text: formatCurrency(subtotal), alignment: 'right', fillColor: '#f7fafc' }
-      ]);
-
-      if (taxEnabled && taxAmount > 0) {
-        tableBody.push([
-          { text: '', border: [false, false, false, false] },
-          { text: `${taxName} (${taxRate}%)`, colSpan: 2, alignment: 'right', color: '#64748b', fillColor: '#f7fafc' },
-          { text: '', fillColor: '#f7fafc' },
-          { text: formatCurrency(taxAmount), alignment: 'right', fillColor: '#f7fafc' }
-        ]);
-      }
-
-      tableBody.push([
-        { text: '', border: [false, false, false, false] },
-        { text: 'TOTAL', colSpan: 2, alignment: 'right', bold: true, color: 'white', fillColor: themeColorRgb },
-        { text: '', fillColor: themeColorRgb },
-        { text: formatCurrency(grandTotal), alignment: 'right', bold: true, color: 'white', fillColor: themeColorRgb }
-      ]);
-
-      const receiptContent = [
-        {
-          fillColor: themeColorRgb,
-          table: { body: [[{ text: companyName, color: 'white', fontSize: 18, bold: true, alignment: 'center' }]] },
-          layout: 'noBorders',
-          margin: [0, 0, 0, 5]
-        }
-      ];
-
-      if (companyAddress) receiptContent.push({ text: companyAddress, color: '#e2e8f0', fontSize: 9, alignment: 'center', margin: [0, 0, 0, 3] });
-      if (contactPerson) receiptContent.push({ text: contactPerson, color: '#e2e8f0', fontSize: 8, alignment: 'center', margin: [0, 0, 0, 2] });
-      if (others) receiptContent.push({ text: others, color: '#cbd5e0', fontSize: 7, alignment: 'center', margin: [0, 0, 0, 5] });
-
-      receiptContent.push({
-        stack: [
-          { text: type.toUpperCase(), color: themeColorRgb, fontSize: 14, bold: true, alignment: 'center', margin: [0, 10, 0, 5] },
-          { text: 'TAX INVOICE / RECEIPT', color: '#4a5568', fontSize: 10, alignment: 'center' }
-        ],
-        border: [1, 1, 1, 1],
-        borderColor: themeColorRgb,
-        margin: [20, 0, 20, 10]
-      });
-
-      receiptContent.push({
-        columns: [
-          {
-            width: '50%',
-            stack: [
-              { text: 'FROM', color: themeColorRgb, fontSize: 8, bold: true, margin: [0, 8, 0, 4] },
-              { text: companyName, bold: true },
-              { text: companyAddress || '', color: '#4a5568', fontSize: 9 }
-            ]
-          },
-          {
-            width: '50%',
-            stack: [
-              { text: 'BILL TO', color: themeColorRgb, fontSize: 8, bold: true, margin: [0, 8, 0, 4] },
-              { text: clientName, bold: true },
-              { text: clientAddress || '', color: '#4a5568', fontSize: 9 }
-            ]
-          }
-        ],
-        margin: [0, 0, 0, 10]
-      });
-
-      receiptContent.push({
-        text: `Invoice No: ${receiptNo}          Date: ${date}`,
-        fontSize: 9,
-        fillColor: '#edf2f7',
-        margin: [0, 0, 0, 15],
-        padding: 8
-      });
-
-      receiptContent.push({
-        table: {
-          headerRows: 1,
-          widths: [20, '*', 40, 40],
-          body: tableBody
-        },
-        layout: {
-          hLineWidth: () => 1,
-          vLineWidth: () => 0,
-          hLineColor: () => '#e2e8f0',
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 6,
-          paddingBottom: () => 6
-        },
-        margin: [0, 0, 0, 10]
-      });
-
-      if (tc) {
-        receiptContent.push({
-          stack: [
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 475, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }] },
-            { text: 'Terms & Conditions:', bold: true, fontSize: 8, margin: [0, 10, 0, 5] },
-            { text: tc, fontSize: 8, color: '#4a5568' }
-          ],
-          margin: [20, 10, 20, 0]
+        pdfDoc.fillColor(0, 0, 0).fontSize(8);
+        xPos = margin + 5;
+        const rowData = [String(item.qty || 0), item.description || '', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)];
+        rowData.forEach((cell, j) => {
+          const align = j === 0 || j === 2 || j === 3 ? 'center' : 'left';
+          pdfDoc.text(cell, xPos, currentY + 2, { width: colWidths[j], align });
+          xPos += colWidths[j];
         });
-      }
-
-      receiptContent.push({
-        text: `Page ${index + 1} of ${receipts.length}`,
-        alignment: 'center',
-        fontSize: 8,
-        color: '#888',
-        margin: [0, 20, 0, 0]
+        currentY += rowHeight;
       });
 
-      content.push(receiptContent);
+      // Subtotal
+      pdfDoc.rect(margin + 145, currentY, 70, rowHeight).fill(247, 250, 252);
+      pdfDoc.fillColor(100, 100, 100).fontSize(8).text('Subtotal:', margin + 150, currentY + 2);
+      pdfDoc.fillColor(0, 0, 0).text(formatCurrency(subtotal), margin + 180, currentY + 2, { width: 35, align: 'right' });
+      currentY += rowHeight;
 
-      if (index < receipts.length - 1) {
-        content.push({ text: '', pageBreak: 'after' });
+      // Tax
+      if (taxEnabled && taxAmount > 0) {
+        pdfDoc.rect(margin + 145, currentY, 70, rowHeight).fill(247, 250, 252);
+        pdfDoc.fillColor(100, 100, 100).fontSize(8).text(`${taxName} (${taxRate}%):`, margin + 150, currentY + 2);
+        pdfDoc.fillColor(0, 0, 0).text(formatCurrency(taxAmount), margin + 180, currentY + 2, { width: 35, align: 'right' });
+        currentY += rowHeight;
       }
+
+      // Total
+      const totalY = currentY;
+      pdfDoc.rect(margin + 145, totalY, 70, rowHeight + 2).fill(themeRGB.r, themeRGB.g, themeRGB.b);
+      pdfDoc.fillColor(255, 255, 255).fontSize(10).text('TOTAL', margin + 150, totalY + 3);
+      pdfDoc.fontSize(12).text(formatCurrency(grandTotal), margin + 180, totalY + 3, { width: 35, align: 'right' });
+
+      // Terms & Conditions
+      if (tc) {
+        const tcY = totalY + rowHeight + 10;
+        pdfDoc.moveTo(margin, tcY).lineTo(pageWidth - margin, tcY).stroke(226, 232, 240);
+        pdfDoc.fillColor(74, 85, 104).fontSize(8).text('Terms & Conditions:', margin, tcY + 5);
+        pdfDoc.text(tc, margin, tcY + 12, { width: pageWidth - 2 * margin });
+      }
+
+      // Page number
+      pdfDoc.fillColor(150, 150, 150).fontSize(8).text(`Page ${index + 1} of ${receipts.length}`, margin, 287, { align: 'center', width: pageWidth - 2 * margin });
     });
-
-    // Use Chinese font if loaded, otherwise fallback
-    const fontName = chineseFont ? 'NotoSans' : 'Helvetica';
-
-    const docDefinition = {
-      pageSize: 'A4',
-      pageMargins: [20, 20, 20, 20],
-      content,
-      defaultStyle: {
-        font: fontName,
-        fontSize: 10
-      }
-    };
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-    const chunks = [];
-    pdfDoc.on('data', chunk => chunks.push(chunk));
-    pdfDoc.on('end', () => {});
 
     pdfDoc.end();
 
