@@ -29,6 +29,11 @@ module.exports = async function handler(req, res) {
       // Options
       themeColor = '#3b82f6',
       template = 'classic',
+      currency = '$',
+      taxEnabled = false,
+      taxRate = 0,
+      taxName = 'Tax',
+      logoData = null,
       tc = ''
     } = req.body;
 
@@ -43,6 +48,15 @@ module.exports = async function handler(req, res) {
 
     // Parse theme color
     const rgb = hexToRgb(themeColor);
+
+    // Currency symbol
+    const getCurrencySymbol = (curr) => {
+      const symbols = { 'HKD': '$', 'USD': '$', 'EUR': '€', 'GBP': '£', 'CNY': '¥', 'JPY': '¥' };
+      return symbols[curr] || curr || '$';
+    };
+    const currencySymbol = getCurrencySymbol(currency);
+
+    const formatCurrency = (amount) => currencySymbol + parseFloat(amount).toFixed(2);
 
     // Create PDF
     const doc = new jsPDF();
@@ -64,20 +78,22 @@ module.exports = async function handler(req, res) {
 
       // Calculate total
       const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
+      const total = subtotal + taxAmount;
 
       // Render receipt based on template
       switch (template) {
         case 'modern':
-          renderModernTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum: i + 1, totalPages: receipts.length });
+          renderModernTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum: i + 1, totalPages: receipts.length });
           break;
         case 'minimal':
-          renderMinimalTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum: i + 1, totalPages: receipts.length });
+          renderMinimalTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum: i + 1, totalPages: receipts.length });
           break;
         case 'bold':
-          renderBoldTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum: i + 1, totalPages: receipts.length });
+          renderBoldTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum: i + 1, totalPages: receipts.length });
           break;
         default:
-          renderClassicTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum: i + 1, totalPages: receipts.length });
+          renderClassicTemplate(doc, { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum: i + 1, totalPages: receipts.length });
       }
     }
 
@@ -95,7 +111,7 @@ module.exports = async function handler(req, res) {
 
 // Classic Template (original)
 function renderClassicTemplate(doc, data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum, totalPages } = data;
+  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum, totalPages } = data;
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
 
@@ -189,6 +205,11 @@ function renderClassicTemplate(doc, data) {
   // Items table
   const tableData = items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]);
 
+  // Add tax row if enabled
+  if (taxEnabled && taxAmount > 0) {
+    tableData.push(['', '', taxName + ' (' + taxRate + '%)', formatCurrency(taxAmount)]);
+  }
+
   doc.autoTable({
     startY: y,
     head: [['Qty', 'Description', 'Unit Price', 'Amount']],
@@ -210,7 +231,7 @@ function renderClassicTemplate(doc, data) {
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL', pageWidth - 85, y + 13);
   doc.setFontSize(16);
-  doc.text(formatCurrency(subtotal), pageWidth - 25, y + 13, { align: 'right' });
+  doc.text(formatCurrency(total), pageWidth - 25, y + 13, { align: 'right' });
 
   y += 30;
 
@@ -237,7 +258,7 @@ function renderClassicTemplate(doc, data) {
 
 // Modern Template
 function renderModernTemplate(doc, data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum, totalPages } = data;
+  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum, totalPages } = data;
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
 
@@ -309,6 +330,9 @@ function renderModernTemplate(doc, data) {
 
   // Items table with border
   const tableData = items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]);
+  if (taxEnabled && taxAmount > 0) {
+    tableData.push(['', '', taxName + ' (' + taxRate + '%)', formatCurrency(taxAmount)]);
+  }
 
   doc.autoTable({
     startY: y,
@@ -331,7 +355,7 @@ function renderModernTemplate(doc, data) {
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL', pageWidth - 85, y + 13);
   doc.setFontSize(16);
-  doc.text(formatCurrency(subtotal), pageWidth - 25, y + 13, { align: 'right' });
+  doc.text(formatCurrency(total), pageWidth - 25, y + 13, { align: 'right' });
 
   y += 30;
 
@@ -358,7 +382,7 @@ function renderModernTemplate(doc, data) {
 
 // Minimal Template
 function renderMinimalTemplate(doc, data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum, totalPages } = data;
+  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum, totalPages } = data;
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
 
@@ -400,10 +424,15 @@ function renderMinimalTemplate(doc, data) {
   y += 15;
 
   // Simple table with bottom border
+  const tableData = items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]);
+  if (taxEnabled && taxAmount > 0) {
+    tableData.push(['', '', taxName + ' (' + taxRate + '%)', formatCurrency(taxAmount)]);
+  }
+
   doc.autoTable({
     startY: y,
     head: [['Qty', 'Description', 'Unit Price', 'Amount']],
-    body: items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]),
+    body: tableData,
     theme: 'plain',
     headStyles: { fillColor: [255, 255, 255], textColor: [31, 41, 55], fontStyle: 'bold', fontSize: 10, borderBottom: '2px solid #1f2937' },
     bodyStyles: { fontSize: 9, textColor: [31, 41, 55] },
@@ -430,7 +459,7 @@ function renderMinimalTemplate(doc, data) {
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL: ', pageWidth - 70, y);
   doc.setFontSize(18);
-  doc.text(formatCurrency(subtotal), pageWidth - 15, y, { align: 'right' });
+  doc.text(formatCurrency(total), pageWidth - 15, y, { align: 'right' });
 
   y += 20;
 
@@ -457,7 +486,7 @@ function renderMinimalTemplate(doc, data) {
 
 // Bold Template
 function renderBoldTemplate(doc, data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, themeColor, rgb, tc, pageNum, totalPages } = data;
+  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, items, type, subtotal, taxAmount, total, taxEnabled, taxName, taxRate, themeColor, rgb, formatCurrency, logoData, tc, pageNum, totalPages } = data;
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
 
@@ -526,10 +555,15 @@ function renderBoldTemplate(doc, data) {
   y += 50;
 
   // Items table with shadow
+  const tableData = items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]);
+  if (taxEnabled && taxAmount > 0) {
+    tableData.push(['', '', taxName + ' (' + taxRate + '%)', formatCurrency(taxAmount)]);
+  }
+
   doc.autoTable({
     startY: y,
     head: [['Qty', 'Description', 'Unit Price', 'Amount']],
-    body: items.map(item => [item.qty || 0, item.description || '-', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)]),
+    body: tableData,
     theme: 'grid',
     headStyles: { fillColor: [31, 41, 55], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
     bodyStyles: { fontSize: 9 },
@@ -547,7 +581,7 @@ function renderBoldTemplate(doc, data) {
   doc.setFont('helvetica', 'bold');
   doc.text('TOTAL', pageWidth - 85, y + 14);
   doc.setFontSize(18);
-  doc.text(formatCurrency(subtotal), pageWidth - 25, y + 14, { align: 'right' });
+  doc.text(formatCurrency(total), pageWidth - 25, y + 14, { align: 'right' });
 
   y += 32;
 
@@ -570,10 +604,6 @@ function renderBoldTemplate(doc, data) {
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
   doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-}
-
-function formatCurrency(amount) {
-  return '$' + parseFloat(amount).toFixed(2);
 }
 
 function hexToRgb(hex) {
