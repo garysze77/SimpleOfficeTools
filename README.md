@@ -6,9 +6,14 @@
 
 - 📄 支援 Receipt、Invoice、Quotation、Proforma 四種單據類型
 - 🎨 4 種 PDF 範本：Classic、Modern、Minimal、Bold
-- 🎭 自訂主題顏色
+- 🎭 自訂主題顏色 ( Colour Picker)
+- 🖼️ 上載公司 Logo
+- 💱 多種貨幣支援 (HKD, USD, EUR, GBP, CNY, JPY)
+- 📊 Tax/GST 計算 (可自訂税率)
+- 💾 設定保存/載入 (localStorage)
+- 🌓 Dark Mode 深色模式
 - 📤 支援上載 Excel、CSV、JSON 檔案
-- 🔗 REST API 接入
+- 🔗 REST API 接入 (支援中文字)
 - 📊 Google Sheets 直接讀取
 - 🌍 中英文介面
 
@@ -43,6 +48,8 @@ vercel
 POST https://your-project.vercel.app/api/receipt
 ```
 
+**API 完整支援中文字輸出 PDF**
+
 ### Request Format
 
 ```json
@@ -53,7 +60,11 @@ POST https://your-project.vercel.app/api/receipt
   "others": "Tel: 1234-5678",
   "themeColor": "#3b82f6",
   "template": "classic",
+  "currency": "HKD",
+  "taxEnabled": false,
+  "taxRate": 0,
   "tc": "Payment within 30 days",
+  "logoData": "data:image/png;base64,...",
   "receipts": [
     {
       "receiptNo": "R001",
@@ -62,7 +73,7 @@ POST https://your-project.vercel.app/api/receipt
       "clientAddress": "香港灣仔軒尼詩道100號",
       "type": "RECEIPT",
       "items": [
-        { "description": "Service", "qty": 1, "unitCost": 100, "amount": 100 }
+        { "description": "服務費用", "qty": 1, "unitCost": 100, "amount": 100 }
       ]
     }
   ]
@@ -82,19 +93,32 @@ POST https://your-project.vercel.app/api/receipt
 | type | - | 單據類型 (RECEIPT/INVOICE/QUOTATION/PROFORMA) |
 | template | - | 範本 (classic/modern/minimal/bold) |
 | themeColor | - | 主題顏色 (hex) |
+| currency | - | 貨幣 (HKD/USD/EUR/GBP/CNY/JPY) |
+| taxEnabled | - | 啟用 Tax (true/false) |
+| taxRate | - | 税率 (數字) |
+| taxName | - | Tax 名稱 (預設: Tax) |
 | companyAddress | - | 公司地址 |
 | contactPerson | - | 聯絡人 |
 | others | - | 其他資料 |
+| logoData | - | Logo (base64) |
 | tc | - | Terms & Conditions |
 
 ## 示例代碼
 
-### cURL
+### cURL (英文)
 ```bash
 curl -X POST https://your-project.vercel.app/api/receipt \
   -H "Content-Type: application/json" \
-  -d '{"companyName":"ABC","receipts":[{"receiptNo":"R001","date":"2024-01-15","clientName":"Client","items":[{"description":"Test","qty":1,"unitCost":100,"amount":100}]}]}' \
+  -d '{"companyName":"ABC","receipts":[{"receiptNo":"R001","date":"2024-01-15","clientName":"Client","items":[{"description":"Service","qty":1,"unitCost":100,"amount":100}]}]}' \
   --output receipt.pdf
+```
+
+### cURL (中文)
+```bash
+curl -X POST https://your-project.vercel.app/api/receipt \
+  -H "Content-Type: application/json" \
+  -d '{"companyName":"測試公司","companyAddress":"香港中環","receipts":[{"receiptNo":"R001","date":"2024-01-15","clientName":"客戶A","clientAddress":"香港灣仔","type":"INVOICE","items":[{"description":"顧問服務","qty":2,"unitCost":500,"amount":1000}]}]}' \
+  --output 收據.pdf
 ```
 
 ### JavaScript
