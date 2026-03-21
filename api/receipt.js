@@ -71,6 +71,11 @@ module.exports = async function handler(req, res) {
       console.log('Error loading font:', e.message);
     }
 
+    // Register fonts with pdfkit
+    if (chineseFont) {
+      doc.registerFont('NotoSans', fontPath);
+    }
+
     // Create PDF document
     const doc = new PDFDocument({
       size: 'A4',
@@ -100,7 +105,7 @@ module.exports = async function handler(req, res) {
       doc.rect(0, 0, pageWidth, 35).fill(themeRGB.r, themeRGB.g, themeRGB.b);
 
       // Company name
-      const font = chineseFont || 'Helvetica';
+      const font = chineseFont ? 'NotoSans' : 'Helvetica';
       doc.fillColor(255, 255, 255).fontSize(18).font(font).text(companyName, margin, 12, { align: 'center', width: pageWidth - 2 * margin });
 
       // Company details
