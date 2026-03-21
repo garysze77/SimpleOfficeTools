@@ -58,48 +58,42 @@ module.exports = async function handler(req, res) {
     const themeRGB = hexToRgb(themeColor);
     const themeColorRgb = `rgb(${themeRGB.r}, ${themeRGB.g}, ${themeRGB.b})`;
 
-    // Find a font that supports Chinese
+    // Load embedded Chinese font
     let chineseFont = null;
-    const fontPaths = [
-      '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
-      '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
-      '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
-      '/usr/share/fonts/truetype/arphic/uming.ttc',
-      '/usr/share/fonts/truetype/arphic/ukai.ttc',
-      '/System/Library/Fonts/PingFang.ttc',
-      '/System/Library/Fonts/STHeiti Light.ttc',
-    ];
+    const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansCJKsc-Regular.otf');
 
-    for (const fontPath of fontPaths) {
-      try {
-        if (fs.existsSync(fontPath)) {
-          chineseFont = fontkit.openSync(fontPath);
-          console.log('Found font:', fontPath);
-          break;
-        }
-      } catch (e) {
-        continue;
+    try {
+      if (fs.existsSync(fontPath)) {
+        chineseFont = fontkit.openSync(fontPath);
+        console.log('Loaded Chinese font from:', fontPath);
+      } else {
+        console.log('Font file not found at:', fontPath);
       }
+    } catch (e) {
+      console.log('Error loading font:', e.message);
     }
 
-    // Get font names
-    let fontNames = {
-      normal: 'Helvetica',
-      bold: 'Helvetica-Bold',
-      italics: 'Helvetica-Oblique',
-      bolditalics: 'Helvetica-BoldOblique'
+    // Define fonts with Chinese support
+    let fonts = {
+      Helvetica: {
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
+        bolditalics: 'Helvetica-BoldOblique'
+      }
     };
 
     if (chineseFont) {
-      fontNames = {
-        normal: chineseFont.fonts[0].familyName || 'Noto Sans',
-        bold: chineseFont.fonts[0].familyName || 'Noto Sans',
-        italics: chineseFont.fonts[0].familyName || 'Noto Sans',
-        bolditalics: chineseFont.fonts[0].familyName || 'Noto Sans'
+      fonts = {
+        NotoSans: {
+          normal: chineseFont,
+          bold: chineseFont,
+          italics: chineseFont,
+          bolditalics: chineseFont
+        }
       };
     }
 
-    const fonts = { Helvetica: fontNames };
     const printer = new PdfPrinter(fonts);
 
     const content = [];
@@ -249,12 +243,15 @@ module.exports = async function handler(req, res) {
       }
     });
 
+    // Use Chinese font if loaded, otherwise fallback
+    const fontName = chineseFont ? 'NotoSans' : 'Helvetica';
+
     const docDefinition = {
       pageSize: 'A4',
       pageMargins: [20, 20, 20, 20],
       content,
       defaultStyle: {
-        font: 'Helvetica',
+        font: fontName,
         fontSize: 10
       }
     };
