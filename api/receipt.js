@@ -175,7 +175,8 @@ function generatePDFHTML(data) {
           receiptNo, date, clientName, clientAddress,
           itemsHtml, taxRowHtml, subtotal, total,
           themeColor, type, template, logoData, tc,
-          pageNum: index + 1, totalPages: receipts.length
+          pageNum: index + 1, totalPages: receipts.length,
+          formatCurrency
         })}
       </div>
     `;
@@ -200,7 +201,7 @@ ${receiptsHTML}
 }
 
 function getTemplateHTML(data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, itemsHtml, taxRowHtml, subtotal, total, themeColor, type, template, logoData, tc, pageNum, totalPages } = data;
+  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, itemsHtml, taxRowHtml, subtotal, total, themeColor, type, template, logoData, tc, pageNum, totalPages, formatCurrency } = data;
 
   const totalBox = `
     <div style="background:${themeColor};color:white;padding:12px 15px;border-radius:4px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
