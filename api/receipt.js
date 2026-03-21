@@ -1,5 +1,5 @@
-const puppeteer = require('puppeteer-core');
-const { chromium } = require('@sparticuz/chromium');
+const html2canvas = require('html2canvas');
+const { jsPDF } = require('jspdf');
 
 module.exports = async function handler(req, res) {
   // Set CORS headers
@@ -66,30 +66,58 @@ module.exports = async function handler(req, res) {
       tc
     });
 
-    // Launch browser with serverless-compatible Chromium
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      channel: 'chrome'
+    // Create a mock DOM environment for html2canvas
+    const { JSDOM } = require('jsdom');
+    const dom = new JSDOM(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>`, {
+      pretendToBeVisual: true,
+      resources: 'usable'
     });
 
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    const { window } = dom;
+    global.document = window.document;
+    global.navigator = window.navigator;
+    global.HTMLElement = window.HTMLElement;
+    global.Element = window.Element;
+    global.Node = window.Node;
+    global.DOMParser = window.DOMParser;
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 }
-    });
+    // Write HTML content to document
+    document.body.innerHTML = htmlContent;
 
-    await browser.close();
+    // Render each page and add to PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pages = document.querySelectorAll('.receipt-page');
+
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+
+      const canvas = await html2canvas(page, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 794, // A4 at 96 DPI
+        windowHeight: 1123
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      if (i > 0) {
+        pdf.addPage();
+      }
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+    }
+
+    // Generate PDF buffer
+    const pdfBuffer = pdf.output('arraybuffer');
 
     // Return PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="receipts.pdf"`);
-    return res.send(pdfBuffer);
+    return res.send(Buffer.from(pdfBuffer));
 
   } catch (error) {
     console.error('Error generating PDF:', error);
@@ -158,15 +186,10 @@ function generatePDFHTML(data) {
 <html>
 <head>
   <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    @page { size: A4; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Noto Sans SC", "Microsoft JhengHei", "PingFang SC", "Heiti SC", sans-serif; }
-    .receipt-page { width: 210mm; min-height: 297mm; padding: 20mm; background: white; page-break-after: always; }
-    .receipt-page:last-child { page-break-after: avoid; }
+    body { font-family: "Microsoft JhengHei", "PingFang SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Heiti SC", sans-serif; }
+    .receipt-page { width: 794px; min-height: 1123px; padding: 80px; background: white; }
   </style>
 </head>
 <body>
@@ -193,7 +216,7 @@ function getTemplateHTML(data) {
   ` : '';
 
   return `
-    <div style="background:${themeColor};padding:18px;margin:-20mm -20mm 18px -20mm;">
+    <div style="background:${themeColor};padding:18px;margin:-80px -80px 18px -80px;">
       <h1 style="margin:0;font-size:18pt;color:white;font-weight:600;text-align:center;">${companyName}</h1>
       ${companyAddress ? `<p style="margin:4px 0;color:#e2e8f0;font-size:9pt;text-align:center;">${companyAddress}</p>` : ''}
       ${contactPerson ? `<p style="margin:4px 0;color:#e2e8f0;font-size:8pt;text-align:center;">${contactPerson}</p>` : ''}
