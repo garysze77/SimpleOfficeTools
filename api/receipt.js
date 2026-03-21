@@ -1,6 +1,3 @@
-const html2canvas = require('html2canvas');
-const { jsPDF } = require('jspdf');
-
 module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,6 +13,9 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // Dynamic import to handle ESM modules
+    const { default: jsPDF } = await import('jspdf');
+
     const {
       companyName,
       companyAddress = '',
@@ -48,71 +48,244 @@ module.exports = async function handler(req, res) {
     const currencySymbol = getCurrencySymbol(currency);
     const formatCurrency = (amount) => currencySymbol + parseFloat(amount).toFixed(2);
 
-    // Generate HTML for all receipts
-    const htmlContent = generatePDFHTML({
-      receipts,
-      companyName,
-      companyAddress,
-      contactPerson,
-      others,
-      themeColor,
-      template,
-      currencySymbol,
-      formatCurrency,
-      taxEnabled,
-      taxRate,
-      taxName,
-      logoData,
-      tc
+    // Parse hex color to RGB
+    const hexToRgb = (hex) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 59, g: 130, b: 246 };
+    };
+    const themeRGB = hexToRgb(themeColor);
+
+    // Create PDF
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
     });
 
-    // Create a mock DOM environment for html2canvas
-    const { JSDOM } = require('jsdom');
-    const dom = new JSDOM(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>`, {
-      pretendToBeVisual: true,
-      resources: 'usable'
-    });
+    // Use Unicode font
+    doc.setFont('helvetica');
 
-    const { window } = dom;
-    global.document = window.document;
-    global.navigator = window.navigator;
-    global.HTMLElement = window.HTMLElement;
-    global.Element = window.Element;
-    global.Node = window.Node;
-    global.DOMParser = window.DOMParser;
-
-    // Write HTML content to document
-    document.body.innerHTML = htmlContent;
-
-    // Render each page and add to PDF
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pages = document.querySelectorAll('.receipt-page');
-
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-
-      const canvas = await html2canvas(page, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 794, // A4 at 96 DPI
-        windowHeight: 1123
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      if (i > 0) {
-        pdf.addPage();
+    // Process each receipt
+    receipts.forEach((receipt, index) => {
+      if (index > 0) {
+        doc.addPage();
       }
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-    }
+      const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'RECEIPT' } = receipt;
+
+      const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
+      const grandTotal = subtotal + taxAmount;
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 20;
+
+      // Header background
+      doc.setFillColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+
+      // Company name (white)
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(companyName, pageWidth / 2, 15, { align: 'center' });
+
+      // Company details
+      if (companyAddress) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(companyAddress, pageWidth / 2, 22, { align: 'center' });
+      }
+      if (contactPerson) {
+        doc.setFontSize(8);
+        doc.text(contactPerson, pageWidth / 2, 27, { align: 'center' });
+      }
+      if (others) {
+        doc.setFontSize(7);
+        doc.text(others, pageWidth / 2, 31, { align: 'center' });
+      }
+
+      // Document type box
+      doc.setDrawColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.setLineWidth(0.5);
+      doc.rect(margin, 45, pageWidth - 2 * margin, 20);
+
+      doc.setTextColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(type.toUpperCase(), pageWidth / 2, 52, { align: 'center' });
+
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('TAX INVOICE / RECEIPT', pageWidth / 2, 60, { align: 'center' });
+
+      // From / Bill To section
+      const sectionY = 75;
+      const sectionHeight = 30;
+      const boxWidth = (pageWidth - 2 * margin - 5) / 2;
+
+      // From box
+      doc.setFillColor(247, 250, 252);
+      doc.rect(margin, sectionY, boxWidth, sectionHeight, 'F');
+
+      doc.setTextColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FROM', margin + 5, sectionY + 6);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(companyName, margin + 5, sectionY + 12);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      if (companyAddress) {
+        doc.text(companyAddress, margin + 5, sectionY + 18);
+      }
+
+      // Bill To box
+      const billToX = margin + boxWidth + 5;
+      doc.setFillColor(247, 250, 252);
+      doc.rect(billToX, sectionY, boxWidth, sectionHeight, 'F');
+
+      doc.setTextColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BILL TO', billToX + 5, sectionY + 6);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(clientName, billToX + 5, sectionY + 12);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      if (clientAddress) {
+        doc.text(clientAddress, billToX + 5, sectionY + 18);
+      }
+
+      // Invoice details
+      const detailsY = sectionY + sectionHeight + 5;
+      doc.setFillColor(237, 242, 247);
+      doc.rect(margin, detailsY, pageWidth - 2 * margin, 10, 'F');
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Invoice No: ${receiptNo}`, margin + 5, detailsY + 7);
+      doc.text(`Date: ${date}`, margin + 100, detailsY + 7);
+
+      // Items table
+      const tableY = detailsY + 18;
+      const rowHeight = 8;
+      const qtyWidth = 20;
+      const descWidth = 90;
+      const priceWidth = 35;
+      const amountWidth = 35;
+
+      // Table header
+      doc.setFillColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.rect(margin, tableY, pageWidth - 2 * margin, rowHeight, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Qty', margin + qtyWidth / 2, tableY + 5.5, { align: 'center' });
+      doc.text('Description', margin + qtyWidth + 5, tableY + 5.5);
+      doc.text('Unit Price', margin + qtyWidth + descWidth + priceWidth / 2, tableY + 5.5, { align: 'center' });
+      doc.text('Amount', margin + qtyWidth + descWidth + priceWidth + amountWidth / 2, tableY + 5.5, { align: 'center' });
+
+      // Table rows
+      let currentY = tableY + rowHeight;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont('helvetica', 'normal');
+
+      items.forEach((item, i) => {
+        if (i % 2 === 0) {
+          doc.setFillColor(255, 255, 255);
+        } else {
+          doc.setFillColor(249, 250, 251);
+        }
+        doc.rect(margin, currentY, pageWidth - 2 * margin, rowHeight, 'F');
+
+        doc.setFontSize(8);
+        doc.text(String(item.qty || 0), margin + qtyWidth / 2, currentY + 5.5, { align: 'center' });
+        doc.text(item.description || '', margin + qtyWidth + 5, currentY + 5.5);
+        doc.text(formatCurrency(item.unitCost || 0), margin + qtyWidth + descWidth + priceWidth / 2, currentY + 5.5, { align: 'center' });
+        doc.text(formatCurrency(item.amount || 0), margin + qtyWidth + descWidth + priceWidth + amountWidth / 2, currentY + 5.5, { align: 'right' });
+
+        currentY += rowHeight;
+      });
+
+      // Subtotal
+      doc.setFillColor(247, 250, 252);
+      doc.rect(margin + qtyWidth + descWidth, currentY, priceWidth + amountWidth, rowHeight, 'F');
+
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(8);
+      doc.text('Subtotal:', margin + qtyWidth + descWidth + 5, currentY + 5.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text(formatCurrency(subtotal), margin + qtyWidth + descWidth + priceWidth + amountWidth, currentY + 5.5, { align: 'right' });
+      currentY += rowHeight;
+
+      // Tax
+      if (taxEnabled && taxAmount > 0) {
+        doc.setFillColor(247, 250, 252);
+        doc.rect(margin + qtyWidth + descWidth, currentY, priceWidth + amountWidth, rowHeight, 'F');
+
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(8);
+        doc.text(`${taxName} (${taxRate}%):`, margin + qtyWidth + descWidth + 5, currentY + 5.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text(formatCurrency(taxAmount), margin + qtyWidth + descWidth + priceWidth + amountWidth, currentY + 5.5, { align: 'right' });
+        currentY += rowHeight;
+      }
+
+      // Total
+      const totalY = currentY;
+      doc.setFillColor(themeRGB.r, themeRGB.g, themeRGB.b);
+      doc.rect(margin + qtyWidth + descWidth, totalY, priceWidth + amountWidth, rowHeight + 4, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOTAL', margin + qtyWidth + descWidth + 5, totalY + 6);
+      doc.setFontSize(12);
+      doc.text(formatCurrency(grandTotal), margin + qtyWidth + descWidth + priceWidth + amountWidth, totalY + 6, { align: 'right' });
+
+      // Terms & Conditions
+      if (tc) {
+        const tcY = totalY + rowHeight + 15;
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margin, tcY, pageWidth - margin, tcY);
+
+        doc.setTextColor(74, 85, 104);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Terms & Conditions:', margin, tcY + 8);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(tc, margin, tcY + 15, { maxWidth: pageWidth - 2 * margin });
+      }
+
+      // Page number
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Page ${index + 1} of ${receipts.length}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    });
 
     // Generate PDF buffer
-    const pdfBuffer = pdf.output('arraybuffer');
+    const pdfBuffer = doc.output('arraybuffer');
 
     // Return PDF
     res.setHeader('Content-Type', 'application/pdf');
@@ -124,140 +297,3 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to generate PDF: ' + error.message });
   }
 };
-
-function generatePDFHTML(data) {
-  const {
-    receipts,
-    companyName,
-    companyAddress,
-    contactPerson,
-    others,
-    themeColor,
-    template,
-    currencySymbol,
-    formatCurrency,
-    taxEnabled,
-    taxRate,
-    taxName,
-    logoData,
-    tc
-  } = data;
-
-  const receiptsHTML = receipts.map((receipt, index) => {
-    const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'RECEIPT' } = receipt;
-    const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
-    const total = subtotal + taxAmount;
-
-    const itemsHtml = items.map((item, i) => `
-      <tr style="${i % 2 === 0 ? 'background:#fff' : 'background:#f9fafb'}">
-        <td style="text-align:center;padding:8px;border-bottom:1px solid #e2e8f0;">${item.qty || 0}</td>
-        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${item.description || ''}</td>
-        <td style="text-align:right;padding:8px;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.unitCost || 0)}</td>
-        <td style="text-align:right;padding:8px;border-bottom:1px solid #e2e8f0;">${formatCurrency(item.amount || 0)}</td>
-      </tr>
-    `).join('');
-
-    let taxRowHtml = '';
-    if (taxEnabled && taxAmount > 0) {
-      taxRowHtml = `
-        <tr>
-          <td colspan="3" style="text-align:right;padding:6px 8px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:9pt;">${taxName} (${taxRate}%)</td>
-          <td style="text-align:right;padding:6px 8px;border-bottom:1px solid #e2e8f0;">${formatCurrency(taxAmount)}</td>
-        </tr>
-      `;
-    }
-
-    return `
-      <div class="receipt-page">
-        ${getTemplateHTML({
-          companyName, companyAddress, contactPerson, others,
-          receiptNo, date, clientName, clientAddress,
-          itemsHtml, taxRowHtml, subtotal, total,
-          themeColor, type, template, logoData, tc,
-          pageNum: index + 1, totalPages: receipts.length,
-          formatCurrency
-        })}
-      </div>
-    `;
-  }).join('');
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Microsoft JhengHei", "PingFang SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Heiti SC", sans-serif; }
-    .receipt-page { width: 794px; min-height: 1123px; padding: 80px; background: white; }
-  </style>
-</head>
-<body>
-${receiptsHTML}
-</body>
-</html>
-  `;
-}
-
-function getTemplateHTML(data) {
-  const { companyName, companyAddress, contactPerson, others, receiptNo, date, clientName, clientAddress, itemsHtml, taxRowHtml, subtotal, total, themeColor, type, template, logoData, tc, pageNum, totalPages, formatCurrency } = data;
-
-  const totalBox = `
-    <div style="background:${themeColor};color:white;padding:12px 15px;border-radius:4px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:12pt;font-weight:700;">TOTAL</span>
-      <span style="font-size:16pt;font-weight:700;">${formatCurrency(total)}</span>
-    </div>
-  `;
-
-  const tcHtml = tc ? `
-    <div style="margin-top:20px;font-size:8pt;color:#4a5568;border-top:1px solid #e2e8f0;padding-top:10px;">
-      <strong>Terms & Conditions:</strong><br>${tc.replace(/\n/g, '<br>')}
-    </div>
-  ` : '';
-
-  return `
-    <div style="background:${themeColor};padding:18px;margin:-80px -80px 18px -80px;">
-      <h1 style="margin:0;font-size:18pt;color:white;font-weight:600;text-align:center;">${companyName}</h1>
-      ${companyAddress ? `<p style="margin:4px 0;color:#e2e8f0;font-size:9pt;text-align:center;">${companyAddress}</p>` : ''}
-      ${contactPerson ? `<p style="margin:4px 0;color:#e2e8f0;font-size:8pt;text-align:center;">${contactPerson}</p>` : ''}
-      ${others ? `<p style="margin:4px 0;color:#cbd5e0;font-size:7pt;text-align:center;">${others}</p>` : ''}
-    </div>
-    <div style="text-align:center;margin:12px 0;border:2px solid ${themeColor};padding:12px;border-radius:6px;">
-      <h2 style="margin:0;font-size:14pt;color:${themeColor};font-weight:700;">${type.toUpperCase()}</h2>
-      <h3 style="margin:4px 0;font-size:10pt;color:#4a5568;">TAX INVOICE / RECEIPT</h3>
-    </div>
-    <div style="display:flex;margin:12px 0;font-size:9pt;background:#f7fafc;padding:12px;border-radius:4px;border-left:4px solid ${themeColor};">
-      <div style="flex:1;">
-        <div style="color:${themeColor};font-weight:700;margin-bottom:6px;font-size:8pt;text-transform:uppercase;">From</div>
-        <strong>${companyName}</strong><br>
-        <span style="color:#4a5568;">${companyAddress || ''}</span>
-      </div>
-      <div style="flex:1;border-left:1px solid #e2e8f0;padding-left:12px;">
-        <div style="color:${themeColor};font-weight:700;margin-bottom:6px;font-size:8pt;text-transform:uppercase;">Bill To</div>
-        <strong>${clientName}</strong><br>
-        <span style="color:#4a5568;">${clientAddress || ''}</span>
-      </div>
-    </div>
-    <div style="margin:12px 0;font-size:9pt;background:#edf2f7;padding:8px 12px;border-radius:4px;display:flex;justify-content:space-between;">
-      <span><strong>Invoice No:</strong> <span style="color:${themeColor};">${receiptNo}</span></span>
-      <span><strong>Date:</strong> <span style="color:${themeColor};">${date}</span></span>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:9pt;margin:10px 0;">
-      <thead>
-        <tr style="background:${themeColor};color:white;">
-          <th style="padding:10px;text-align:center;">Qty</th>
-          <th style="padding:10px;text-align:left;">Description</th>
-          <th style="padding:10px;text-align:right;">Unit Price</th>
-          <th style="padding:10px;text-align:right;">Amount</th>
-        </tr>
-      </thead>
-      <tbody>${itemsHtml}${taxRowHtml}</tbody>
-    </table>
-    ${totalBox}
-    ${tcHtml}
-    <div style="text-align:center;font-size:8pt;color:#888;margin-top:15px;">
-      Page ${pageNum} of ${totalPages}
-    </div>
-  `;
-}
