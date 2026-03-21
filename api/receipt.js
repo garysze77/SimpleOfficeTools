@@ -71,16 +71,16 @@ module.exports = async function handler(req, res) {
       console.log('Error loading font:', e.message);
     }
 
-    // Register fonts with pdfkit
-    if (chineseFont) {
-      doc.registerFont('NotoSans', fontPath);
-    }
-
     // Create PDF document
     const doc = new PDFDocument({
       size: 'A4',
       margins: { top: 20, bottom: 20, left: 20, right: 20 }
     });
+
+    // Register fonts with pdfkit
+    if (chineseFont) {
+      doc.registerFont('NotoSans', fontPath);
+    }
 
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
