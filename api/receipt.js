@@ -16,8 +16,9 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const pdfmakeModule = await import('pdfmake');
-    const PdfPrinter = pdfmakeModule.PdfPrinter || pdfmakeModule.default.PdfPrinter;
+    // Use require for pdfmake (CommonJS)
+    const pdfmake = require('pdfmake/build/pdfmake');
+    const PdfPrinter = pdfmake.PdfPrinter;
 
     const {
       companyName,
