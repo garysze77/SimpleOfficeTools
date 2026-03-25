@@ -109,19 +109,6 @@ module.exports = async function handler(req, res) {
       if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
       if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
     };
-    const drawHeader = () => {
-      doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
-      if (hasLogo) {
-        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
-      }
-      const textX = hasLogo ? margin + 60 : margin;
-      const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
-      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
-      if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
-      if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
-      if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
-    };
-
     // Helper to draw footer
     const drawFooter = () => {
       doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${currentPage}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
