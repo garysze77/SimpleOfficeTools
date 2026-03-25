@@ -94,9 +94,21 @@ module.exports = async function handler(req, res) {
 
     // Track page number manually
     let currentPage = 1;
-    const totalPages = receipts.length; // This won't be accurate for multi-page receipts
+    const totalPages = receipts.length;
 
     // Helper to draw header
+    const drawHeader = () => {
+      doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
+      if (hasLogo) {
+        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
+      }
+      const textX = hasLogo ? margin + 60 : margin;
+      const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
+      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
+      if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
+      if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
+      if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
+    };
     const drawHeader = () => {
       doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
       if (hasLogo) {
@@ -167,15 +179,16 @@ module.exports = async function handler(req, res) {
 
       // === TABLE ROWS ===
       items.forEach((item, i) => {
-        // Check for page overflow
-        if (y + 18 > pageHeight - 80) {
-          drawFooter();
+        // Check for page overflow - BEFORE drawing this row
+        if (y + 18 > pageHeight - 60) {
+          // End current page with footer
+          doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
+          // Add new page
           doc.addPage();
-          currentPage++;
           y = margin;
           drawHeader();
           y = headerHeight + 8;
-          // Draw table header
+          // Draw table header on new page
           doc.rect(margin, y, contentWidth, 18).fillAndStroke(themeColor, themeColor);
           doc.fillColor('#ffffff').fontSize(9).font(font);
           doc.text('Qty', margin + 5, y + 5, { width: col1 - 10, align: 'center' });
@@ -250,8 +263,8 @@ module.exports = async function handler(req, res) {
         y = tcTextY + 10;
       }
 
-      // === FOOTER ===
-      drawFooter();
+      // === FOOTER at end of receipt ===
+      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
     });
 
     doc.end();
