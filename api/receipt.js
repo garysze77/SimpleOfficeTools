@@ -90,9 +90,9 @@ module.exports = async function handler(req, res) {
       let y = margin;
 
       // === HEADER BAR ===
-      doc.rect(0, 0, pageWidth, 50).fill(themeColor);
-      doc.fillColor('#ffffff').fontSize(18).font(font).text(companyName, margin, 10, { align: 'center', width: contentWidth });
-      if (companyAddress) doc.fontSize(9).text(companyAddress, margin, 28, { align: 'center', width: contentWidth });
+      doc.rect(0, 0, pageWidth, 55).fill(themeColor);
+      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, margin, 8, { align: 'center', width: contentWidth });
+      if (companyAddress) doc.fontSize(9).text(companyAddress, margin, 26, { align: 'center', width: contentWidth });
       if (contactPerson) doc.fontSize(8).text(contactPerson, margin, 38, { align: 'center', width: contentWidth });
 
       y = 60;
@@ -160,23 +160,23 @@ module.exports = async function handler(req, res) {
 
       // Subtotal row
       doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f0f0f0', '#cccccc');
-      doc.fillColor('#666666').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 10, y + 3);
-      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + contentWidth - 8, y + 3, { width: col4, align: 'right' });
+      doc.fillColor('#666666').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 5, y + 3);
+      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
       y += 18;
 
       // Tax row
       if (taxEnabled && taxAmt > 0) {
         doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f0f0f0', '#cccccc');
-        doc.fillColor('#666666').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 10, y + 3);
-        doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + contentWidth - 8, y + 3, { width: col4, align: 'right' });
+        doc.fillColor('#666666').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 5, y + 3);
+        doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
         y += 18;
       }
 
       // Total row
       y += 5;
       doc.rect(margin, y, contentWidth, 22).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(11).font(font).text('TOTAL:', margin + col1 + col2 + 10, y + 5);
-      doc.fontSize(13).text(formatCurrency(total), margin + contentWidth - 8, y + 4, { width: col4, align: 'right' });
+      doc.fillColor('#ffffff').fontSize(11).font(font).text('TOTAL:', margin + col1 + col2 + 5, y + 5);
+      doc.fontSize(13).text(formatCurrency(total), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
 
       y += 32;
 
