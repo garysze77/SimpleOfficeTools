@@ -48,7 +48,6 @@ module.exports = async function handler(req, res) {
     // Load Chinese font
     const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansCJKsc-Regular.otf');
     let hasChineseFont = false;
-    let fontSize = 10;
     try {
       if (fs.existsSync(fontPath)) {
         hasChineseFont = true;
@@ -85,62 +84,69 @@ module.exports = async function handler(req, res) {
     const margin = 40;
     const contentWidth = pageWidth - 2 * margin; // 515
 
+    const headerHeight = 65;
+
     // Table columns
     const col1 = 50;   // Qty
     const col2 = 235;  // Description
     const col3 = 105;  // Unit
     const col4 = 125;  // Amount
 
+    // Track page number manually
+    let currentPage = 1;
+    const totalPages = receipts.length; // This won't be accurate for multi-page receipts
+
+    // Helper to draw header
+    const drawHeader = () => {
+      doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
+      if (hasLogo) {
+        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
+      }
+      const textX = hasLogo ? margin + 60 : margin;
+      const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
+      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
+      if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
+      if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
+      if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
+    };
+
+    // Helper to draw footer
+    const drawFooter = () => {
+      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${currentPage}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
+    };
+
     // Process each receipt
     receipts.forEach((receipt, idx) => {
-      if (idx > 0) doc.addPage();
+      if (idx > 0) {
+        doc.addPage();
+        currentPage++;
+      }
 
       const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'INVOICE' } = receipt;
 
       let y = margin;
 
-      // === HEADER BAR with LOGO ===
-      const headerHeight = 65;
-      doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
-
-      // Logo on left
-      if (hasLogo) {
-        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
-      }
-
-      // Company name and info on right of logo
-      const textX = hasLogo ? margin + 60 : margin;
-      const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
-
-      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
-      if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
-      if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
-      if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
-
+      // === HEADER ===
+      drawHeader();
       y = headerHeight + 8;
 
       // === TYPE BOX ===
       doc.rect(margin, y, contentWidth, 20).fillAndStroke(themeColor, themeColor);
       doc.fillColor('#ffffff').fontSize(12).font(font).text(type.toUpperCase(), margin, y + 4, { align: 'center', width: contentWidth });
-
       y += 28;
 
-      // === FROM / BILL TO BOXES ===
+      // === FROM / BILL TO ===
       const boxW = (contentWidth - 10) / 2;
-
-      // FROM
       doc.rect(margin, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
       doc.fillColor(themeColor).fontSize(7).font(font).text('FROM', margin + 6, y + 4);
       doc.fillColor('#000000').fontSize(9).text(companyName, margin + 6, y + 14);
       if (companyAddress) doc.fillColor('#666666').fontSize(7).text(companyAddress, margin + 6, y + 25);
 
-      // BILL TO
       const billX = margin + boxW + 10;
       doc.rect(billX, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
       doc.fillColor(themeColor).fontSize(7).font(font).text('BILL TO', billX + 6, y + 4);
       doc.fillColor('#000000').fontSize(9).text(clientName, billX + 6, y + 14);
       if (clientAddress) doc.fillColor('#666666').fontSize(7).text(clientAddress, billX + 6, y + 25);
-
       y += 48;
 
       // === INVOICE DETAILS ===
@@ -148,7 +154,6 @@ module.exports = async function handler(req, res) {
       doc.fillColor('#000000').fontSize(8).font(font);
       doc.text(`Invoice No: ${receiptNo}`, margin + 6, y + 3);
       doc.text(`Date: ${date}`, margin + contentWidth - 70, y + 3, { width: 65, align: 'right' });
-
       y += 20;
 
       // === TABLE HEADER ===
@@ -158,37 +163,19 @@ module.exports = async function handler(req, res) {
       doc.text('Description', margin + col1 + 5, y + 5, { width: col2 - 10, align: 'left' });
       doc.text('Unit', margin + col1 + col2 + 5, y + 5, { width: col3 - 10, align: 'right' });
       doc.text('Amount', margin + col1 + col2 + col3 + 5, y + 5, { width: col4 - 10, align: 'right' });
-
       y += 18;
 
-      // Helper function to draw header on new page
-      const drawHeader = () => {
-        doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
-        if (hasLogo) {
-          doc.image(logoPath, margin, 8, { width: 50, height: 50 });
-        }
-        const textX = hasLogo ? margin + 60 : margin;
-        const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
-        doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
-        if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
-        if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
-        if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
-        return headerHeight + 8;
-      };
-
-      // Helper function to draw footer
-      const drawFooter = () => {
-        doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number} of ${receipts.length}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
-      };
-
-      // === TABLE ROWS with page overflow ===
+      // === TABLE ROWS ===
       items.forEach((item, i) => {
-        // Check if we need a new page
-        if (y + 18 > pageHeight - 50) {
+        // Check for page overflow
+        if (y + 18 > pageHeight - 80) {
           drawFooter();
           doc.addPage();
-          y = drawHeader();
-          // Draw table header on new page
+          currentPage++;
+          y = margin;
+          drawHeader();
+          y = headerHeight + 8;
+          // Draw table header
           doc.rect(margin, y, contentWidth, 18).fillAndStroke(themeColor, themeColor);
           doc.fillColor('#ffffff').fontSize(9).font(font);
           doc.text('Qty', margin + 5, y + 5, { width: col1 - 10, align: 'center' });
@@ -234,24 +221,36 @@ module.exports = async function handler(req, res) {
       doc.rect(margin, y, contentWidth, 20).fillAndStroke(themeColor, themeColor);
       doc.fillColor('#ffffff').fontSize(11).font(font).text('TOTAL:', margin + col1 + col2 + 5, y + 5);
       doc.fontSize(13).text(formatCurrency(total), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+      y += 30;
 
-      y += 28;
-
-      // === TERMS & CONDITIONS ===
+      // === T&C ON LEFT, SIGNATURE ON RIGHT ===
       if (tc) {
-        // Check if T&C fits, if not add new page
-        if (y + 50 > pageHeight - 50) {
-          drawFooter();
-          doc.addPage();
-          y = drawHeader();
-        }
-        doc.moveTo(margin, y).lineTo(margin + contentWidth, y).stroke('#cccccc');
-        doc.fillColor('#666666').fontSize(8).font(font).text('Terms & Conditions:', margin, y + 6);
-        doc.fontSize(9).text(tc, margin, y + 18, { width: contentWidth });
-        y += 50;
+        const tcY = y;
+        // T&C on LEFT (60% width)
+        const tcWidth = (contentWidth - 10) * 0.6;
+        doc.moveTo(margin, tcY).lineTo(margin + tcWidth, tcY).stroke('#cccccc');
+        doc.fillColor('#666666').fontSize(8).font(font).text('Terms & Conditions:', margin, tcY + 6);
+        // Split T&C by | and list each on new line
+        const tcItems = tc.split('|').map(s => s.trim()).filter(s => s);
+        let tcTextY = tcY + 18;
+        tcItems.forEach(item => {
+          doc.fontSize(8).text('• ' + item, margin, tcTextY, { width: tcWidth });
+          tcTextY += 12;
+        });
+
+        // Signature area on RIGHT (40% width)
+        const sigX = margin + tcWidth + 10;
+        const sigW = contentWidth - tcWidth - 10;
+        doc.moveTo(sigX, tcY).lineTo(sigX + sigW, tcY).stroke('#cccccc');
+        doc.fillColor('#666666').fontSize(8).font(font).text('Signature:', sigX, tcY + 6);
+        // Signature line
+        doc.moveTo(sigX, tcY + 40).lineTo(sigX + sigW, tcY + 40).stroke('#999999');
+        doc.fillColor('#888888').fontSize(7).text('Authorized Signature', sigX, tcY + 44, { width: sigW, align: 'center' });
+
+        y = tcTextY + 10;
       }
 
-      // === PAGE NUMBER ===
+      // === FOOTER ===
       drawFooter();
     });
 
