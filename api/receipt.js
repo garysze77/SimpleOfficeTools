@@ -161,8 +161,43 @@ module.exports = async function handler(req, res) {
 
       y += 18;
 
-      // === TABLE ROWS ===
+      // Helper function to draw header on new page
+      const drawHeader = () => {
+        doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
+        if (hasLogo) {
+          doc.image(logoPath, margin, 8, { width: 50, height: 50 });
+        }
+        const textX = hasLogo ? margin + 60 : margin;
+        const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
+        doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
+        if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
+        if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
+        if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
+        return headerHeight + 8;
+      };
+
+      // Helper function to draw footer
+      const drawFooter = () => {
+        doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number} of ${receipts.length}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
+      };
+
+      // === TABLE ROWS with page overflow ===
       items.forEach((item, i) => {
+        // Check if we need a new page
+        if (y + 18 > pageHeight - 50) {
+          drawFooter();
+          doc.addPage();
+          y = drawHeader();
+          // Draw table header on new page
+          doc.rect(margin, y, contentWidth, 18).fillAndStroke(themeColor, themeColor);
+          doc.fillColor('#ffffff').fontSize(9).font(font);
+          doc.text('Qty', margin + 5, y + 5, { width: col1 - 10, align: 'center' });
+          doc.text('Description', margin + col1 + 5, y + 5, { width: col2 - 10, align: 'left' });
+          doc.text('Unit', margin + col1 + col2 + 5, y + 5, { width: col3 - 10, align: 'right' });
+          doc.text('Amount', margin + col1 + col2 + col3 + 5, y + 5, { width: col4 - 10, align: 'right' });
+          y += 18;
+        }
+
         const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(margin, y, contentWidth, 18).fillAndStroke(bg, '#dddddd');
         doc.fillColor('#000000').fontSize(9).font(font);
@@ -204,14 +239,20 @@ module.exports = async function handler(req, res) {
 
       // === TERMS & CONDITIONS ===
       if (tc) {
+        // Check if T&C fits, if not add new page
+        if (y + 50 > pageHeight - 50) {
+          drawFooter();
+          doc.addPage();
+          y = drawHeader();
+        }
         doc.moveTo(margin, y).lineTo(margin + contentWidth, y).stroke('#cccccc');
         doc.fillColor('#666666').fontSize(8).font(font).text('Terms & Conditions:', margin, y + 6);
         doc.fontSize(9).text(tc, margin, y + 18, { width: contentWidth });
-        y += 40;
+        y += 50;
       }
 
-      // === PAGE NUMBER - at bottom of content, not page bottom ===
-      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${idx + 1} of ${receipts.length}`, margin, y, { align: 'center', width: contentWidth });
+      // === PAGE NUMBER ===
+      drawFooter();
     });
 
     doc.end();
