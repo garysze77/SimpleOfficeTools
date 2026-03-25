@@ -143,7 +143,7 @@ module.exports = async function handler(req, res) {
       const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
       const grandTotal = subtotal + taxAmount;
 
-      let y = drawHeader(y);
+      let y = drawHeader();
 
       // Document type box
       doc.rect(margin, y, contentWidth, 25).fillAndStroke(themeColor, themeColor);
