@@ -146,10 +146,10 @@ module.exports = async function handler(req, res) {
       let y = drawHeader();
 
       // Document type box
-      doc.rect(margin, y, contentWidth, 25).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(16).font(font).text(type.toUpperCase(), margin, y + 6, { align: 'center', width: contentWidth });
+      doc.rect(margin, y, contentWidth, 35).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(16).font(font).text(type.toUpperCase(), margin, y + 11, { align: 'center', width: contentWidth });
 
-      y += 35;
+      y += 45;
 
       // From / Bill To boxes
       const boxWidth = (contentWidth - 10) / 2;
@@ -176,8 +176,8 @@ module.exports = async function handler(req, res) {
 
       // Invoice details
       doc.rect(margin, y, contentWidth, 18).fillAndStroke('#edf2f7', '#e2e8f0');
-      doc.fillColor('#000000').fontSize(10).font(defaultFont).text(`Invoice No: ${receiptNo}`, margin + 10, y + 5);
-      doc.text(`Date: ${date}`, margin + 180, y + 5);
+      doc.fillColor('#000000').fontSize(10).font(defaultFont).text(`Invoice No: ${receiptNo}`, margin + 10, y + 4);
+      doc.text(`Date: ${date}`, margin + 180, y + 4);
       y += 30;
 
       // Calculate space needed for table + subtotal/tax/total + footer
@@ -253,23 +253,23 @@ module.exports = async function handler(req, res) {
       const totalsWidth = colWidths[2] + colWidths[3]; // Unit + Amount columns
 
       doc.rect(totalsX, y, totalsWidth, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
-      doc.fillColor('#718096').fontSize(10).font(defaultFont).text('Subtotal:', totalsX + 8, y + 4);
-      doc.fillColor('#000000').text(formatCurrency(subtotal), totalsX + totalsWidth - 8, y + 4, { width: colWidths[3], align: 'right' });
+      doc.fillColor('#718096').fontSize(10).font(defaultFont).text('Subtotal:', totalsX + 8, y + 5);
+      doc.fillColor('#000000').text(formatCurrency(subtotal), totalsX + totalsWidth - 8, y + 5, { width: colWidths[3], align: 'right' });
       y += rowHeight;
 
       // Tax row
       if (taxEnabled && taxAmount > 0) {
         doc.rect(totalsX, y, totalsWidth, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
-        doc.fillColor('#718096').fontSize(10).text(`${taxName} (${taxRate}%):`, totalsX + 8, y + 4);
-        doc.fillColor('#000000').text(formatCurrency(taxAmount), totalsX + totalsWidth - 8, y + 4, { width: colWidths[3], align: 'right' });
+        doc.fillColor('#718096').fontSize(10).text(`${taxName} (${taxRate}%):`, totalsX + 8, y + 5);
+        doc.fillColor('#000000').text(formatCurrency(taxAmount), totalsX + totalsWidth - 8, y + 5, { width: colWidths[3], align: 'right' });
         y += rowHeight;
       }
 
       // Total row
       y += 8;
-      doc.rect(totalsX, y, totalsWidth, rowHeight + 4).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(12).font(defaultFont).text('TOTAL', totalsX + 8, y + 6);
-      doc.fontSize(14).text(formatCurrency(grandTotal), totalsX + totalsWidth - 8, y + 5, { width: colWidths[3], align: 'right' });
+      doc.rect(totalsX, y, totalsWidth, 30).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(12).font(defaultFont).text('TOTAL', totalsX + 8, y + 9);
+      doc.fontSize(14).text(formatCurrency(grandTotal), totalsX + totalsWidth - 8, y + 8, { width: colWidths[3], align: 'right' });
 
       // Terms & Conditions
       if (tc) {
