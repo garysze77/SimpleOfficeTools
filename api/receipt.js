@@ -117,31 +117,31 @@ module.exports = async function handler(req, res) {
       if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
       if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
 
-      y = headerHeight + 15;
+      y = headerHeight + 8;
 
       // === TYPE BOX ===
-      doc.rect(margin, y, contentWidth, 22).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(13).font(font).text(type.toUpperCase(), margin, y + 5, { align: 'center', width: contentWidth });
+      doc.rect(margin, y, contentWidth, 20).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(12).font(font).text(type.toUpperCase(), margin, y + 4, { align: 'center', width: contentWidth });
 
-      y += 32;
+      y += 28;
 
       // === FROM / BILL TO BOXES ===
       const boxW = (contentWidth - 10) / 2;
 
       // FROM
-      doc.rect(margin, y, boxW, 45).fillAndStroke('#f8f8f8', '#dddddd');
-      doc.fillColor(themeColor).fontSize(7).font(font).text('FROM', margin + 6, y + 5);
-      doc.fillColor('#000000').fontSize(10).text(companyName, margin + 6, y + 15);
-      if (companyAddress) doc.fillColor('#666666').fontSize(8).text(companyAddress, margin + 6, y + 27);
+      doc.rect(margin, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
+      doc.fillColor(themeColor).fontSize(7).font(font).text('FROM', margin + 6, y + 4);
+      doc.fillColor('#000000').fontSize(9).text(companyName, margin + 6, y + 14);
+      if (companyAddress) doc.fillColor('#666666').fontSize(7).text(companyAddress, margin + 6, y + 25);
 
       // BILL TO
       const billX = margin + boxW + 10;
-      doc.rect(billX, y, boxW, 45).fillAndStroke('#f8f8f8', '#dddddd');
-      doc.fillColor(themeColor).fontSize(7).font(font).text('BILL TO', billX + 6, y + 5);
-      doc.fillColor('#000000').fontSize(10).text(clientName, billX + 6, y + 15);
-      if (clientAddress) doc.fillColor('#666666').fontSize(8).text(clientAddress, billX + 6, y + 27);
+      doc.rect(billX, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
+      doc.fillColor(themeColor).fontSize(7).font(font).text('BILL TO', billX + 6, y + 4);
+      doc.fillColor('#000000').fontSize(9).text(clientName, billX + 6, y + 14);
+      if (clientAddress) doc.fillColor('#666666').fontSize(7).text(clientAddress, billX + 6, y + 25);
 
-      y += 55;
+      y += 48;
 
       // === INVOICE DETAILS ===
       doc.rect(margin, y, contentWidth, 14).fillAndStroke('#eeeeee', '#dddddd');
@@ -149,28 +149,28 @@ module.exports = async function handler(req, res) {
       doc.text(`Invoice No: ${receiptNo}`, margin + 6, y + 3);
       doc.text(`Date: ${date}`, margin + contentWidth - 70, y + 3, { width: 65, align: 'right' });
 
-      y += 22;
+      y += 20;
 
       // === TABLE HEADER ===
-      doc.rect(margin, y, contentWidth, 16).fillAndStroke(themeColor, themeColor);
+      doc.rect(margin, y, contentWidth, 18).fillAndStroke(themeColor, themeColor);
       doc.fillColor('#ffffff').fontSize(9).font(font);
-      doc.text('Qty', margin + 5, y + 4, { width: col1 - 10, align: 'center' });
-      doc.text('Description', margin + col1 + 5, y + 4, { width: col2 - 10, align: 'left' });
-      doc.text('Unit', margin + col1 + col2 + 5, y + 4, { width: col3 - 10, align: 'right' });
-      doc.text('Amount', margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+      doc.text('Qty', margin + 5, y + 5, { width: col1 - 10, align: 'center' });
+      doc.text('Description', margin + col1 + 5, y + 5, { width: col2 - 10, align: 'left' });
+      doc.text('Unit', margin + col1 + col2 + 5, y + 5, { width: col3 - 10, align: 'right' });
+      doc.text('Amount', margin + col1 + col2 + col3 + 5, y + 5, { width: col4 - 10, align: 'right' });
 
-      y += 16;
+      y += 18;
 
       // === TABLE ROWS ===
       items.forEach((item, i) => {
         const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
-        doc.rect(margin, y, contentWidth, 16).fillAndStroke(bg, '#dddddd');
+        doc.rect(margin, y, contentWidth, 18).fillAndStroke(bg, '#dddddd');
         doc.fillColor('#000000').fontSize(9).font(font);
-        doc.text(String(item.qty || 0), margin + 5, y + 3, { width: col1 - 10, align: 'center' });
-        doc.text(item.description || '', margin + col1 + 5, y + 3, { width: col2 - 10, align: 'left' });
-        doc.text(formatCurrency(item.unitCost || 0), margin + col1 + col2 + 5, y + 3, { width: col3 - 10, align: 'right' });
-        doc.text(formatCurrency(item.amount || 0), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
-        y += 16;
+        doc.text(String(item.qty || 0), margin + 5, y + 5, { width: col1 - 10, align: 'center' });
+        doc.text(item.description || '', margin + col1 + 5, y + 5, { width: col2 - 10, align: 'left' });
+        doc.text(formatCurrency(item.unitCost || 0), margin + col1 + col2 + 5, y + 5, { width: col3 - 10, align: 'right' });
+        doc.text(formatCurrency(item.amount || 0), margin + col1 + col2 + col3 + 5, y + 5, { width: col4 - 10, align: 'right' });
+        y += 18;
       });
 
       y += 10;
@@ -181,17 +181,17 @@ module.exports = async function handler(req, res) {
       const total = subtotal + taxAmt;
 
       // Subtotal
-      doc.rect(margin, y, contentWidth, 14).fillAndStroke('#f0f0f0', '#cccccc');
-      doc.fillColor('#666666').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 5, y + 3);
-      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
-      y += 16;
+      doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f5f5f5', '#cccccc');
+      doc.fillColor('#555555').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 5, y + 4);
+      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+      y += 18;
 
       // Tax
       if (taxEnabled && taxAmt > 0) {
-        doc.rect(margin, y, contentWidth, 14).fillAndStroke('#f0f0f0', '#cccccc');
-        doc.fillColor('#666666').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 5, y + 3);
-        doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
-        y += 16;
+        doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f5f5f5', '#cccccc');
+        doc.fillColor('#555555').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 5, y + 4);
+        doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+        y += 18;
       }
 
       // Total
@@ -200,7 +200,7 @@ module.exports = async function handler(req, res) {
       doc.fillColor('#ffffff').fontSize(11).font(font).text('TOTAL:', margin + col1 + col2 + 5, y + 5);
       doc.fontSize(13).text(formatCurrency(total), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
 
-      y += 30;
+      y += 28;
 
       // === TERMS & CONDITIONS ===
       if (tc) {
