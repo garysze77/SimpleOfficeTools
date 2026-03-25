@@ -19,6 +19,7 @@ module.exports = async function handler(req, res) {
     const {
       companyName,
       companyAddress = '',
+      companyWebsite = '',
       contactPerson = '',
       receipts = [],
       themeColor = '#3b82f6',
@@ -47,9 +48,19 @@ module.exports = async function handler(req, res) {
     // Load Chinese font
     const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansCJKsc-Regular.otf');
     let hasChineseFont = false;
+    let fontSize = 10;
     try {
       if (fs.existsSync(fontPath)) {
         hasChineseFont = true;
+      }
+    } catch (e) {}
+
+    // Load logo
+    const logoPath = path.join(__dirname, '..', 'images', 'scga-logo.png');
+    let hasLogo = false;
+    try {
+      if (fs.existsSync(logoPath)) {
+        hasLogo = true;
       }
     } catch (e) {}
 
@@ -74,12 +85,11 @@ module.exports = async function handler(req, res) {
     const margin = 40;
     const contentWidth = pageWidth - 2 * margin; // 515
 
-    // Table columns - 4 columns that sum to contentWidth
+    // Table columns
     const col1 = 50;   // Qty
-    const col2 = 230;  // Description  
-    const col3 = 110;  // Unit
+    const col2 = 235;  // Description
+    const col3 = 105;  // Unit
     const col4 = 125;  // Amount
-    // Total: 50+230+110+125 = 515 = contentWidth
 
     // Process each receipt
     receipts.forEach((receipt, idx) => {
@@ -89,96 +99,108 @@ module.exports = async function handler(req, res) {
 
       let y = margin;
 
-      // === HEADER BAR ===
-      doc.rect(0, 0, pageWidth, 55).fill(themeColor);
-      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, margin, 8, { align: 'center', width: contentWidth });
-      if (companyAddress) doc.fontSize(9).text(companyAddress, margin, 26, { align: 'center', width: contentWidth });
-      if (contactPerson) doc.fontSize(8).text(contactPerson, margin, 38, { align: 'center', width: contentWidth });
+      // === HEADER BAR with LOGO ===
+      const headerHeight = 65;
+      doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
 
-      y = 60;
+      // Logo on left
+      if (hasLogo) {
+        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
+      }
+
+      // Company name and info on right of logo
+      const textX = hasLogo ? margin + 60 : margin;
+      const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
+
+      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
+      if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
+      if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
+      if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
+
+      y = headerHeight + 15;
 
       // === TYPE BOX ===
-      doc.rect(margin, y, contentWidth, 25).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(14).font(font).text(type.toUpperCase(), margin, y + 6, { align: 'center', width: contentWidth });
+      doc.rect(margin, y, contentWidth, 22).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(13).font(font).text(type.toUpperCase(), margin, y + 5, { align: 'center', width: contentWidth });
 
-      y += 35;
+      y += 32;
 
       // === FROM / BILL TO BOXES ===
       const boxW = (contentWidth - 10) / 2;
 
       // FROM
-      doc.rect(margin, y, boxW, 50).fillAndStroke('#f5f5f5', '#dddddd');
-      doc.fillColor(themeColor).fontSize(8).font(font).text('FROM', margin + 8, y + 6);
-      doc.fillColor('#000000').fontSize(10).text(companyName, margin + 8, y + 18);
-      if (companyAddress) doc.fillColor('#666666').fontSize(8).text(companyAddress, margin + 8, y + 30);
+      doc.rect(margin, y, boxW, 45).fillAndStroke('#f8f8f8', '#dddddd');
+      doc.fillColor(themeColor).fontSize(7).font(font).text('FROM', margin + 6, y + 5);
+      doc.fillColor('#000000').fontSize(10).text(companyName, margin + 6, y + 15);
+      if (companyAddress) doc.fillColor('#666666').fontSize(8).text(companyAddress, margin + 6, y + 27);
 
       // BILL TO
       const billX = margin + boxW + 10;
-      doc.rect(billX, y, boxW, 50).fillAndStroke('#f5f5f5', '#dddddd');
-      doc.fillColor(themeColor).fontSize(8).font(font).text('BILL TO', billX + 8, y + 6);
-      doc.fillColor('#000000').fontSize(10).text(clientName, billX + 8, y + 18);
-      if (clientAddress) doc.fillColor('#666666').fontSize(8).text(clientAddress, billX + 8, y + 30);
+      doc.rect(billX, y, boxW, 45).fillAndStroke('#f8f8f8', '#dddddd');
+      doc.fillColor(themeColor).fontSize(7).font(font).text('BILL TO', billX + 6, y + 5);
+      doc.fillColor('#000000').fontSize(10).text(clientName, billX + 6, y + 15);
+      if (clientAddress) doc.fillColor('#666666').fontSize(8).text(clientAddress, billX + 6, y + 27);
 
-      y += 60;
+      y += 55;
 
       // === INVOICE DETAILS ===
-      doc.rect(margin, y, contentWidth, 16).fillAndStroke('#eeeeee', '#dddddd');
-      doc.fillColor('#000000').fontSize(9).font(font);
-      doc.text(`Invoice No: ${receiptNo}`, margin + 8, y + 3);
-      doc.text(`Date: ${date}`, margin + contentWidth - 80, y + 3, { width: 75, align: 'right' });
+      doc.rect(margin, y, contentWidth, 14).fillAndStroke('#eeeeee', '#dddddd');
+      doc.fillColor('#000000').fontSize(8).font(font);
+      doc.text(`Invoice No: ${receiptNo}`, margin + 6, y + 3);
+      doc.text(`Date: ${date}`, margin + contentWidth - 70, y + 3, { width: 65, align: 'right' });
 
-      y += 26;
+      y += 22;
 
       // === TABLE HEADER ===
-      doc.rect(margin, y, contentWidth, 18).fillAndStroke(themeColor, themeColor);
+      doc.rect(margin, y, contentWidth, 16).fillAndStroke(themeColor, themeColor);
       doc.fillColor('#ffffff').fontSize(9).font(font);
       doc.text('Qty', margin + 5, y + 4, { width: col1 - 10, align: 'center' });
       doc.text('Description', margin + col1 + 5, y + 4, { width: col2 - 10, align: 'left' });
       doc.text('Unit', margin + col1 + col2 + 5, y + 4, { width: col3 - 10, align: 'right' });
       doc.text('Amount', margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
 
-      y += 18;
+      y += 16;
 
       // === TABLE ROWS ===
       items.forEach((item, i) => {
-        const bg = i % 2 === 0 ? '#ffffff' : '#f9f9f9';
-        doc.rect(margin, y, contentWidth, 18).fillAndStroke(bg, '#dddddd');
+        const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
+        doc.rect(margin, y, contentWidth, 16).fillAndStroke(bg, '#dddddd');
         doc.fillColor('#000000').fontSize(9).font(font);
-        doc.text(String(item.qty || 0), margin + 5, y + 4, { width: col1 - 10, align: 'center' });
-        doc.text(item.description || '', margin + col1 + 5, y + 4, { width: col2 - 10, align: 'left' });
-        doc.text(formatCurrency(item.unitCost || 0), margin + col1 + col2 + 5, y + 4, { width: col3 - 10, align: 'right' });
-        doc.text(formatCurrency(item.amount || 0), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
-        y += 18;
+        doc.text(String(item.qty || 0), margin + 5, y + 3, { width: col1 - 10, align: 'center' });
+        doc.text(item.description || '', margin + col1 + 5, y + 3, { width: col2 - 10, align: 'left' });
+        doc.text(formatCurrency(item.unitCost || 0), margin + col1 + col2 + 5, y + 3, { width: col3 - 10, align: 'right' });
+        doc.text(formatCurrency(item.amount || 0), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
+        y += 16;
       });
 
-      // === TOTALS SECTION ===
-      y += 8;
+      y += 10;
 
+      // === TOTALS ===
       const subtotal = items.reduce((s, it) => s + (parseFloat(it.amount) || 0), 0);
       const taxAmt = taxEnabled ? subtotal * (taxRate / 100) : 0;
       const total = subtotal + taxAmt;
 
-      // Subtotal row
-      doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f0f0f0', '#cccccc');
+      // Subtotal
+      doc.rect(margin, y, contentWidth, 14).fillAndStroke('#f0f0f0', '#cccccc');
       doc.fillColor('#666666').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 5, y + 3);
       doc.fillColor('#000000').text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
-      y += 18;
+      y += 16;
 
-      // Tax row
+      // Tax
       if (taxEnabled && taxAmt > 0) {
-        doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f0f0f0', '#cccccc');
+        doc.rect(margin, y, contentWidth, 14).fillAndStroke('#f0f0f0', '#cccccc');
         doc.fillColor('#666666').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 5, y + 3);
         doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 3, { width: col4 - 10, align: 'right' });
-        y += 18;
+        y += 16;
       }
 
-      // Total row
+      // Total
       y += 5;
-      doc.rect(margin, y, contentWidth, 22).fillAndStroke(themeColor, themeColor);
+      doc.rect(margin, y, contentWidth, 20).fillAndStroke(themeColor, themeColor);
       doc.fillColor('#ffffff').fontSize(11).font(font).text('TOTAL:', margin + col1 + col2 + 5, y + 5);
       doc.fontSize(13).text(formatCurrency(total), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
 
-      y += 32;
+      y += 30;
 
       // === TERMS & CONDITIONS ===
       if (tc) {
@@ -188,8 +210,8 @@ module.exports = async function handler(req, res) {
         y += 40;
       }
 
-      // === PAGE NUMBER ===
-      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${idx + 1} of ${receipts.length}`, margin, pageHeight - 35, { align: 'center', width: contentWidth });
+      // === PAGE NUMBER - at bottom of content, not page bottom ===
+      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${idx + 1} of ${receipts.length}`, margin, y, { align: 'center', width: contentWidth });
     });
 
     doc.end();
