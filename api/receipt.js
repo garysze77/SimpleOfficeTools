@@ -206,11 +206,9 @@ module.exports = async function handler(req, res) {
       items.forEach((item, i) => {
         // Check if we need a new page for this row
         if (y + rowHeight > pageHeight - 70) {
-          // Draw footer on current page
-          drawFooter(index + 1, receipts.length);
-          // Add new page
+          // Add new page - footer will be drawn at end of content
           doc.addPage();
-          y = drawHeader(y);
+          y = drawHeader();
           y += 15;
           // Draw table header on new page
           y = drawTableHeader(y);
@@ -285,8 +283,14 @@ module.exports = async function handler(req, res) {
         doc.fontSize(9).text(tc, margin, y + 20, { width: contentWidth });
       }
 
-      // Page number
-      drawFooter(index + 1, receipts.length);
+      // Page number - draw at content bottom, not page bottom
+      const footerY = Math.min(y + 30, pageHeight - 50);
+      doc.fillColor('#a0aec0').fontSize(8).text(
+        `Page ${index + 1} of ${receipts.length}`,
+        margin,
+        footerY,
+        { align: 'center', width: contentWidth }
+      );
     });
 
     doc.end();
