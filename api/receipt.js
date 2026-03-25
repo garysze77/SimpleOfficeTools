@@ -169,7 +169,7 @@ module.exports = async function handler(req, res) {
         // Check for page overflow - BEFORE drawing this row
         if (y + 18 > pageHeight - 60) {
           // End current page with footer
-          doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
+          doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.index + 1}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
           // Add new page
           doc.addPage();
           y = margin;
@@ -251,7 +251,7 @@ module.exports = async function handler(req, res) {
       }
 
       // === FOOTER at end of receipt ===
-      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.number}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
+      doc.fillColor('#aaaaaa').fontSize(8).text(`Page ${doc.page.index + 1}`, margin, pageHeight - 30, { align: 'center', width: contentWidth });
     });
 
     doc.end();
