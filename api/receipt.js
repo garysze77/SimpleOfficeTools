@@ -83,20 +83,14 @@ module.exports = async function handler(req, res) {
     const margin = 50;
     const contentWidth = pageWidth - 2 * margin;
 
-    // Process each receipt
-    receipts.forEach((receipt, index) => {
-      if (index > 0) {
-        doc.addPage();
-      }
+    // Column widths that sum to contentWidth (495)
+    const colWidths = [50, 250, 100, 95];
+    const cols = ['Qty', 'Description', 'Unit', 'Amount'];
+    const rowHeight = 18;
+    const headerHeight = 22;
 
-      const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'RECEIPT' } = receipt;
-
-      const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-      const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
-      const grandTotal = subtotal + taxAmount;
-
-      let y = margin;
-
+    // Helper to draw header on current page
+    const drawHeader = (yPos) => {
       // Header background
       doc.rect(0, 0, pageWidth, 60).fill(themeColor);
 
@@ -111,7 +105,45 @@ module.exports = async function handler(req, res) {
         doc.fontSize(9).text(contactPerson, margin, 47, { align: 'center', width: contentWidth });
       }
 
-      y = 75;
+      return 75;
+    };
+
+    // Helper to draw table header row
+    const drawTableHeader = (yPos) => {
+      doc.rect(margin, yPos, contentWidth, headerHeight).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(10).font(font);
+      let xPos = margin + 8;
+      cols.forEach((col, i) => {
+        const align = i === 0 || i === 2 || i === 3 ? 'center' : 'left';
+        doc.text(col, xPos, yPos + 6, { width: colWidths[i], align });
+        xPos += colWidths[i];
+      });
+      return yPos + headerHeight;
+    };
+
+    // Helper to draw footer
+    const drawFooter = (pageNum, totalPages) => {
+      doc.fillColor('#a0aec0').fontSize(8).text(
+        `Page ${pageNum} of ${totalPages}`,
+        margin,
+        pageHeight - 50,
+        { align: 'center', width: contentWidth }
+      );
+    };
+
+    // Process each receipt
+    receipts.forEach((receipt, index) => {
+      if (index > 0) {
+        doc.addPage();
+      }
+
+      const { receiptNo = '', date = '', clientName = '', clientAddress = '', items = [], type = 'RECEIPT' } = receipt;
+
+      const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+      const taxAmount = taxEnabled ? subtotal * (taxRate / 100) : 0;
+      const grandTotal = subtotal + taxAmount;
+
+      let y = drawHeader(y);
 
       // Document type box
       doc.rect(margin, y, contentWidth, 25).fillAndStroke(themeColor, themeColor);
@@ -148,68 +180,113 @@ module.exports = async function handler(req, res) {
       doc.text(`Date: ${date}`, margin + 180, y + 5);
       y += 30;
 
+      // Calculate space needed for table + subtotal/tax/total + footer
+      const itemsHeight = items.length * rowHeight;
+      const totalsSectionHeight = taxEnabled ? rowHeight * 3 + 25 : rowHeight * 2 + 20;
+      const tcHeight = tc ? 50 : 0;
+      const spaceNeeded = itemsHeight + totalsSectionHeight + tcHeight;
+      const availableSpace = pageHeight - margin - y - 70; // 70 for footer buffer
+
+      // If items won't fit, add page
+      if (spaceNeeded > availableSpace && items.length > 0) {
+        doc.addPage();
+        y = drawHeader(y);
+        y += 15;
+      }
+
       // Items table header
-      const rowHeight = 14;
-      const colWidths = [40, 200, 100, 80];
-      const cols = ['Qty', 'Description', 'Unit Price', 'Amount'];
+      y = drawTableHeader(y);
 
-      doc.rect(margin, y, contentWidth, rowHeight).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(10).font(font);
-      let xPos = margin + 8;
-      cols.forEach((col, i) => {
-        const align = i === 0 || i === 2 || i === 3 ? 'center' : 'left';
-        doc.text(col, xPos, y + 3, { width: colWidths[i], align });
-        xPos += colWidths[i];
-      });
-      y += rowHeight;
+      // Calculate x positions for right-aligned amounts (after Description + Unit)
+      const amountColStart = margin + colWidths[0] + colWidths[1]; // 50 + 250 = 300
+      const unitColStart = margin + colWidths[0]; // 50
 
-      // Table rows
+      // Table rows with page overflow handling
+      let currentPageStartY = y;
       items.forEach((item, i) => {
+        // Check if we need a new page for this row
+        if (y + rowHeight > pageHeight - 70) {
+          // Draw footer on current page
+          drawFooter(index + 1, receipts.length);
+          // Add new page
+          doc.addPage();
+          y = drawHeader(y);
+          y += 15;
+          // Draw table header on new page
+          y = drawTableHeader(y);
+        }
+
         const bgColor = i % 2 === 0 ? '#ffffff' : '#f7fafc';
         doc.rect(margin, y, contentWidth, rowHeight).fillAndStroke(bgColor, '#e2e8f0');
 
         doc.fillColor('#000000').fontSize(10).font(font);
-        xPos = margin + 8;
-        const rowData = [String(item.qty || 0), item.description || '', formatCurrency(item.unitCost || 0), formatCurrency(item.amount || 0)];
-        rowData.forEach((cell, j) => {
-          const align = j === 0 || j === 2 || j === 3 ? 'center' : 'left';
-          doc.text(cell, xPos, y + 3, { width: colWidths[j], align });
-          xPos += colWidths[j];
-        });
+        let xPos = margin + 8;
+
+        // Qty (centered)
+        doc.text(String(item.qty || 0), xPos, y + 5, { width: colWidths[0], align: 'center' });
+        xPos += colWidths[0];
+
+        // Description (left aligned)
+        doc.text(item.description || '', xPos, y + 5, { width: colWidths[1], align: 'left' });
+        xPos += colWidths[1];
+
+        // Unit Price (centered)
+        doc.text(formatCurrency(item.unitCost || 0), xPos, y + 5, { width: colWidths[2], align: 'center' });
+        xPos += colWidths[2];
+
+        // Amount (right aligned)
+        doc.text(formatCurrency(item.amount || 0), xPos, y + 5, { width: colWidths[3], align: 'right' });
+
         y += rowHeight;
       });
 
-      // Subtotal row
-      y += 10;
-      doc.rect(margin + 280, y, contentWidth - 280, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
-      doc.fillColor('#718096').fontSize(10).font(defaultFont).text('Subtotal:', margin + 290, y + 3);
-      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + 420, y + 3, { width: 70, align: 'right' });
+      // Check if totals section fits, if not add new page
+      if (y > pageHeight - 100) {
+        doc.addPage();
+        y = drawHeader(y);
+        y += 15;
+      }
+
+      // Subtotal row - align with Amount column (right side)
+      y += 15;
+      const totalsX = margin + colWidths[0] + colWidths[1]; // Start after Description column
+      const totalsWidth = colWidths[2] + colWidths[3]; // Unit + Amount columns
+
+      doc.rect(totalsX, y, totalsWidth, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+      doc.fillColor('#718096').fontSize(10).font(defaultFont).text('Subtotal:', totalsX + 8, y + 4);
+      doc.fillColor('#000000').text(formatCurrency(subtotal), totalsX + totalsWidth - 8, y + 4, { width: colWidths[3], align: 'right' });
       y += rowHeight;
 
       // Tax row
       if (taxEnabled && taxAmount > 0) {
-        doc.rect(margin + 280, y, contentWidth - 280, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
-        doc.fillColor('#718096').fontSize(10).text(`${taxName} (${taxRate}%):`, margin + 290, y + 3);
-        doc.fillColor('#000000').text(formatCurrency(taxAmount), margin + 420, y + 3, { width: 70, align: 'right' });
+        doc.rect(totalsX, y, totalsWidth, rowHeight).fillAndStroke('#f7fafc', '#e2e8f0');
+        doc.fillColor('#718096').fontSize(10).text(`${taxName} (${taxRate}%):`, totalsX + 8, y + 4);
+        doc.fillColor('#000000').text(formatCurrency(taxAmount), totalsX + totalsWidth - 8, y + 4, { width: colWidths[3], align: 'right' });
         y += rowHeight;
       }
 
       // Total row
-      y += 5;
-      doc.rect(margin + 280, y, contentWidth - 280, rowHeight + 6).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(12).text('TOTAL', margin + 290, y + 6);
-      doc.fontSize(14).text(formatCurrency(grandTotal), margin + 420, y + 5, { width: 70, align: 'right' });
+      y += 8;
+      doc.rect(totalsX, y, totalsWidth, rowHeight + 4).fillAndStroke(themeColor, themeColor);
+      doc.fillColor('#ffffff').fontSize(12).font(defaultFont).text('TOTAL', totalsX + 8, y + 6);
+      doc.fontSize(14).text(formatCurrency(grandTotal), totalsX + totalsWidth - 8, y + 5, { width: colWidths[3], align: 'right' });
 
       // Terms & Conditions
       if (tc) {
-        y += rowHeight + 25;
+        y += rowHeight + 30;
+        // Check if TC fits, if not add new page
+        if (y + 40 > pageHeight - 70) {
+          doc.addPage();
+          y = drawHeader(y);
+          y += 15;
+        }
         doc.moveTo(margin, y).lineTo(pageWidth - margin, y).stroke('#e2e8f0');
         doc.fillColor('#4a5568').fontSize(9).text('Terms & Conditions:', margin, y + 8);
         doc.fontSize(9).text(tc, margin, y + 20, { width: contentWidth });
       }
 
       // Page number
-      doc.fillColor('#a0aec0').fontSize(8).text(`Page ${index + 1} of ${receipts.length}`, margin, pageHeight - 40, { align: 'center', width: contentWidth });
+      drawFooter(index + 1, receipts.length);
     });
 
     doc.end();
