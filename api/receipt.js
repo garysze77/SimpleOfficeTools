@@ -187,7 +187,12 @@ module.exports = async function handler(req, res) {
     };
 
     // Process each receipt
-    receipts.forEach((receipt, idx) => {
+    console.log('Before receipts.forEach, receipts length:', receipts.length);
+      if (receipts.length > 0) {
+        console.log('First receipt items count:', receipts[0].items?.length);
+      }
+      
+      receipts.forEach((receipt, idx) => {
       if (idx > 0) {
         doc.addPage();
         currentPage++;
