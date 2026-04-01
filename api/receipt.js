@@ -39,7 +39,12 @@ module.exports = async function handler(req, res) {
     }
 
     if (!receipts || receipts.length === 0) {
-      return res.status(400).json({ error: 'receipts array is required' });
+      // Try ERP JSON conversion first
+      if (erpJson) {
+        // ERP conversion will happen later, continue
+      } else {
+        return res.status(400).json({ error: 'receipts array is required' });
+      }
     }
 
     const getCurrencySymbol = (curr) => {
