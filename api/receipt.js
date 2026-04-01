@@ -30,7 +30,8 @@ module.exports = async function handler(req, res) {
       taxName = 'Tax',
       tc = '',
       logoBase64 = null,    // Base64 encoded logo image
-      stampBase64 = null    // Base64 encoded stamp image
+      stampBase64 = null,   // Base64 encoded stamp image
+      erpJson = null       // ERPClaw JSON format support
     } = req.body;
 
     if (!companyName) {
@@ -88,6 +89,47 @@ module.exports = async function handler(req, res) {
         stampData = Buffer.from(base64Data, 'base64');
       } catch (e) {
         stampData = null;
+      }
+    }
+
+    // Convert ERPClaw JSON format if provided
+    if (erpJson) {
+      try {
+        const erpData = typeof erpJson === 'string' ? JSON.parse(erpJson) : erpJson;
+        const customer = erpData.customer_name || erpData.customer_id || 'Customer';
+        const erpReceipts = Array.isArray(erpData.items) ? erpData.items : [];
+        
+        // Transform ERP items to smedocs format
+        const transformedItems = erpReceipts.map(item => ({
+          description: item.item_name || item.item_code || 'Item',
+          qty: parseFloat(item.quantity) || 1,
+          unitCost: parseFloat(item.rate) || 0,
+          amount: parseFloat(item.amount) || (parseFloat(item.rate) * (parseFloat(item.quantity) || 1))
+        }));
+
+        // Create a single quotation receipt from ERP data
+        const erpQuotation = {
+          receiptNo: erpData.name || erpData.quotation_id?.slice(0, 8) || 'Q001',
+          date: erpData.quotation_date || new Date().toISOString().split('T')[0],
+          clientName: customer,
+          items: transformedItems,
+          type: 'QUOTATION',
+          subtotal: parseFloat(erpData.total_amount) || 0,
+          tax: parseFloat(erpData.tax_amount) || 0,
+          total: parseFloat(erpData.grand_total) || parseFloat(erpData.total_amount) || 0
+        };
+        
+        // Override or add to receipts array
+        if (receipts.length === 0) {
+          receipts = [erpQuotation];
+        } else {
+          // Merge ERP items into existing receipts
+          receipts[0].items = transformedItems;
+          receipts[0].subtotal = erpQuotation.subtotal;
+          receipts[0].total = erpQuotation.total;
+        }
+      } catch (e) {
+        console.error('ERP JSON parse error:', e);
       }
     }
 
