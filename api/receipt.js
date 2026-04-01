@@ -132,7 +132,7 @@ module.exports = async function handler(req, res) {
       }
       const textX = hasLogo ? margin + 60 : margin;
       const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
-      doc.fillColor('#ffffff').fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
+      doc.fillColor(textColor).fontSize(16).font(font).text(companyName, textX, 10, { width: textWidth });
       if (companyAddress) doc.fontSize(8).text(companyAddress, textX, 28, { width: textWidth });
       if (contactPerson) doc.fontSize(8).text(contactPerson, textX, 40, { width: textWidth });
       if (companyWebsite) doc.fontSize(8).text(companyWebsite, textX, 52, { width: textWidth });
@@ -159,7 +159,7 @@ module.exports = async function handler(req, res) {
 
       // === TYPE BOX ===
       doc.rect(margin, y, contentWidth, 20).fillAndStroke(themeColor, themeColor);
-      doc.fillColor('#ffffff').fontSize(12).font(font).text(type.toUpperCase(), margin, y + 4, { align: 'center', width: contentWidth });
+      doc.fillColor(textColor).fontSize(12).font(font).text(type.toUpperCase(), margin, y + 4, { align: 'center', width: contentWidth });
       y += 28;
 
       // === FROM / BILL TO ===
