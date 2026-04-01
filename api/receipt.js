@@ -119,15 +119,8 @@ module.exports = async function handler(req, res) {
           total: parseFloat(erpData.grand_total) || parseFloat(erpData.total_amount) || 0
         };
         
-        // Override or add to receipts array
-        if (receipts.length === 0) {
-          receipts = [erpQuotation];
-        } else {
-          // Merge ERP items into existing receipts
-          receipts[0].items = transformedItems;
-          receipts[0].subtotal = erpQuotation.subtotal;
-          receipts[0].total = erpQuotation.total;
-        }
+        // Always use ERP quotation data (override receipts)
+        receipts = [erpQuotation];
       } catch (e) {
         console.error('ERP JSON parse error:', e);
       }
