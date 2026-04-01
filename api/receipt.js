@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = async function handler(req, res) {
+  console.log('=== API CALLED ===');
+  console.log('body keys:', Object.keys(req.body || {}));
+  console.log('erpJson exists:', !!req.body.erpJson);
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
