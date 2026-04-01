@@ -23,6 +23,7 @@ module.exports = async function handler(req, res) {
       contactPerson = '',
       receipts = [],
       themeColor = '#3b82f6',
+      textColor = '#000000',    // Text color (default black)
       currency = '$',
       taxEnabled = false,
       taxRate = 0,
@@ -165,19 +166,19 @@ module.exports = async function handler(req, res) {
       const boxW = (contentWidth - 10) / 2;
       doc.rect(margin, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
       doc.fillColor(themeColor).fontSize(7).font(font).text('FROM', margin + 6, y + 4);
-      doc.fillColor('#000000').fontSize(9).text(companyName, margin + 6, y + 14);
+      doc.fillColor(textColor).fontSize(9).text(companyName, margin + 6, y + 14);
       if (companyAddress) doc.fillColor('#666666').fontSize(7).text(companyAddress, margin + 6, y + 25);
 
       const billX = margin + boxW + 10;
       doc.rect(billX, y, boxW, 40).fillAndStroke('#f8f8f8', '#dddddd');
       doc.fillColor(themeColor).fontSize(7).font(font).text('BILL TO', billX + 6, y + 4);
-      doc.fillColor('#000000').fontSize(9).text(clientName, billX + 6, y + 14);
+      doc.fillColor(textColor).fontSize(9).text(clientName, billX + 6, y + 14);
       if (clientAddress) doc.fillColor('#666666').fontSize(7).text(clientAddress, billX + 6, y + 25);
       y += 48;
 
       // === INVOICE DETAILS ===
       doc.rect(margin, y, contentWidth, 14).fillAndStroke('#eeeeee', '#dddddd');
-      doc.fillColor('#000000').fontSize(8).font(font);
+      doc.fillColor(textColor).fontSize(8).font(font);
       doc.text(`Invoice No: ${receiptNo}`, margin + 6, y + 3);
       doc.text(`Date: ${date}`, margin + contentWidth - 70, y + 3, { width: 65, align: 'right' });
       y += 20;
@@ -214,7 +215,7 @@ module.exports = async function handler(req, res) {
 
         const bg = i % 2 === 0 ? '#ffffff' : '#fafafa';
         doc.rect(margin, y, contentWidth, 18).fillAndStroke(bg, '#dddddd');
-        doc.fillColor('#000000').fontSize(9).font(font);
+        doc.fillColor(textColor).fontSize(9).font(font);
         doc.text(String(item.qty || 0), margin + 5, y + 5, { width: col1 - 10, align: 'center' });
         doc.text(item.description || '', margin + col1 + 5, y + 5, { width: col2 - 10, align: 'left' });
         doc.text(formatCurrency(item.unitCost || 0), margin + col1 + col2 + 5, y + 5, { width: col3 - 10, align: 'right' });
@@ -232,14 +233,14 @@ module.exports = async function handler(req, res) {
       // Subtotal
       doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f5f5f5', '#cccccc');
       doc.fillColor('#555555').fontSize(9).font(font).text('Subtotal:', margin + col1 + col2 + 5, y + 4);
-      doc.fillColor('#000000').text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+      doc.fillColor(textColor).text(formatCurrency(subtotal), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
       y += 18;
 
       // Tax
       if (taxEnabled && taxAmt > 0) {
         doc.rect(margin, y, contentWidth, 16).fillAndStroke('#f5f5f5', '#cccccc');
         doc.fillColor('#555555').fontSize(9).font(font).text(`${taxName} (${taxRate}%):`, margin + col1 + col2 + 5, y + 4);
-        doc.fillColor('#000000').text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
+        doc.fillColor(textColor).text(formatCurrency(taxAmt), margin + col1 + col2 + col3 + 5, y + 4, { width: col4 - 10, align: 'right' });
         y += 18;
       }
 
