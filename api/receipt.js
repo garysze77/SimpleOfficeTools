@@ -101,8 +101,10 @@ module.exports = async function handler(req, res) {
     if (erpJson) {
       try {
         const erpData = typeof erpJson === 'string' ? JSON.parse(erpJson) : erpJson;
+        console.log('ERP Data:', JSON.stringify(erpData).slice(0, 200));
         const customer = erpData.customer_name || erpData.customer_id || 'Customer';
         const erpReceipts = Array.isArray(erpData.items) ? erpData.items : [];
+        console.log('ERP Receipts count:', erpReceipts.length);
         
         // Transform ERP items to smedocs format
         const transformedItems = erpReceipts.map(item => ({
