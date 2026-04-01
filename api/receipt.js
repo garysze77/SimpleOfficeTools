@@ -128,6 +128,8 @@ module.exports = async function handler(req, res) {
         
         // Always use ERP quotation data (override receipts)
         receipts = [erpQuotation];
+        console.log('ERP Quotation created, items count:', transformedItems.length);
+        console.log('First item:', JSON.stringify(transformedItems[0]));
       } catch (e) {
         console.error('ERP JSON parse error:', e);
       }
