@@ -27,7 +27,9 @@ module.exports = async function handler(req, res) {
       taxEnabled = false,
       taxRate = 0,
       taxName = 'Tax',
-      tc = ''
+      tc = '',
+      logoBase64 = null,    // Base64 encoded logo image
+      stampBase64 = null    // Base64 encoded stamp image
     } = req.body;
 
     if (!companyName) {
@@ -54,14 +56,39 @@ module.exports = async function handler(req, res) {
       }
     } catch (e) {}
 
-    // Load logo
-    const logoPath = path.join(__dirname, '..', 'images', 'scga-logo.png');
+    // Load logo - from base64 or fallback to file
     let hasLogo = false;
-    try {
-      if (fs.existsSync(logoPath)) {
+    let logoData = null;
+    if (logoBase64) {
+      try {
+        // Remove data URI prefix if present
+        const base64Data = logoBase64.replace(/^data:image\/\w+;base64,/, '');
+        logoData = Buffer.from(base64Data, 'base64');
         hasLogo = true;
+      } catch (e) {
+        hasLogo = false;
       }
-    } catch (e) {}
+    } else {
+      // Fallback to file
+      const logoPath = path.join(__dirname, '..', 'images', 'scga-logo.png');
+      try {
+        if (fs.existsSync(logoPath)) {
+          logoData = fs.readFileSync(logoPath);
+          hasLogo = true;
+        }
+      } catch (e) {}
+    }
+
+    // Load stamp - from base64
+    let stampData = null;
+    if (stampBase64) {
+      try {
+        const base64Data = stampBase64.replace(/^data:image\/\w+;base64,/, '');
+        stampData = Buffer.from(base64Data, 'base64');
+      } catch (e) {
+        stampData = null;
+      }
+    }
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -100,7 +127,7 @@ module.exports = async function handler(req, res) {
     const drawHeader = () => {
       doc.rect(0, 0, pageWidth, headerHeight).fill(themeColor);
       if (hasLogo) {
-        doc.image(logoPath, margin, 8, { width: 50, height: 50 });
+        doc.image(logoData, margin, 8, { width: 50, height: 50 });
       }
       const textX = hasLogo ? margin + 60 : margin;
       const textWidth = hasLogo ? contentWidth - 60 : contentWidth;
@@ -246,6 +273,19 @@ module.exports = async function handler(req, res) {
         // Signature line
         doc.moveTo(sigX, tcY + 40).lineTo(sigX + sigW, tcY + 40).stroke('#999999');
         doc.fillColor('#888888').fontSize(7).text('Authorized Signature', sigX, tcY + 44, { width: sigW, align: 'center' });
+
+        // Stamp on bottom right (next to signature)
+        if (stampData) {
+          try {
+            const stampX = sigX + 5;
+            const stampY = tcY + 55;
+            const stampW = 60;
+            const stampH = 60;
+            doc.image(stampData, stampX, stampY, { width: stampW, height: stampH });
+          } catch (e) {
+            console.error('Stamp error:', e);
+          }
+        }
 
         y = tcTextY + 10;
       }
